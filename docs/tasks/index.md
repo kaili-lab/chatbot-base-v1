@@ -11,8 +11,8 @@
 | Task | 功能 | 依赖 | 状态 |
 |------|------|------|------|
 | [01](./task-01.md) | 初始化 Next.js + shadcn/ui + next-themes + Sonner | 无 | ✅ |
-| [02](./task-02.md) | Drizzle ORM + PostgreSQL + pgvector + 所有 Schema | 01 | ⬜ |
-| [03](./task-03.md) | 项目 CLAUDE.md 开发规范 + Vitest 配置 | 01 | ⬜ |
+| [02](./task-02.md) | Drizzle ORM + PostgreSQL + pgvector + 所有 Schema | 01 | ✅ |
+| [03](./task-03.md) | 项目 CLAUDE.md 开发规范 + Vitest 配置 | 01 | ✅ |
 | [04](./task-04.md) | App Layout 侧边栏 + 顶部栏 | 01 | ⬜ |
 | [05](./task-05.md) | 首页落地页 | 01 | ⬜ |
 

@@ -120,10 +120,10 @@
 
 ## 完成标志
 
-- [ ] Drizzle ORM 配置完成
-- [ ] pgvector 扩展启用
-- [ ] 所有 Schema 定义完成
-- [ ] 迁移文件生成并执行成功
-- [ ] 外键约束和级联删除正常
-- [ ] Drizzle Studio 可用
-- [ ] 测试全部通过
+- [x] Drizzle ORM 配置完成
+- [x] pgvector 扩展启用
+- [x] 所有 Schema 定义完成
+- [x] 迁移文件生成并执行成功
+- [x] 外键约束和级联删除正常
+- [x] Drizzle Studio 可用
+- [x] 测试全部通过

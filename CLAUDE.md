@@ -10,19 +10,10 @@
 
 ## 系统环境
 
-> **待迁移到 WSL Ubuntu**，迁移后删除本节 Windows 相关内容。
-
-- 当前操作系统：Windows 10，Shell：Git Bash (MINGW64)
-- **文件系统操作一律使用 PowerShell**，不要用 bash 的 `ls`、`cp`、`mv`、`rm`：
-  ```bash
-  # 正确
-  powershell -Command "Copy-Item -Path 'src' -Destination 'dst' -Recurse"
-  powershell -Command "Get-ChildItem 'D:\path\to\dir'"
-  # 错误（在此环境下不稳定）
-  ls /d/web/...
-  cp -r src dst
-  ```
-- 路径使用反斜杠：`D:\web\my-projects\chatbot-base`
+- 当前操作系统：WSL2 Ubuntu，Shell：bash
+- 项目路径：`/home/kai/projects/chatbot-base-v1`
+- 文件系统操作使用标准 bash 命令（`ls`、`cp`、`mv`、`rm` 等）
+- 路径使用正斜杠：`/home/kai/projects/chatbot-base-v1`
 
 ### shadcn/ui 安装注意事项
 

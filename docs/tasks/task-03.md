@@ -74,7 +74,7 @@ pnpm db:studio    # 打开 Drizzle Studio
 
 ## 完成标志
 
-- [ ] CLAUDE.md 编写完成
-- [ ] Vitest 安装和配置完成
-- [ ] `pnpm test` 命令可用
-- [ ] 规范与 PRD 一致
+- [x] CLAUDE.md 编写完成
+- [x] Vitest 安装和配置完成
+- [x] `pnpm test` 命令可用
+- [x] 规范与 PRD 一致
