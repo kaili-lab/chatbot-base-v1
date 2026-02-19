@@ -4,7 +4,11 @@
       "Bash(pnpm *)",
       "Bash(npx *)",
       "Bash(node *)",
+      "Bash(tsx *)",
+      "Bash(tsc *)",
+
       "Bash(git *)",
+
       "Bash(mkdir *)",
       "Bash(rm *)",
       "Bash(cp *)",
@@ -13,23 +17,45 @@
       "Bash(cat *)",
       "Bash(chmod *)",
       "Bash(touch *)",
+      "Bash(find *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(sed *)",
+      "Bash(awk *)",
+      "Bash(grep *)",
+      "Bash(wc *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(xargs *)",
+
+      "Bash(bash *)",
+      "Bash(sh *)",
+      "Bash(export *)",
+      "Bash(source *)",
+      "Bash(kill *)",
+      "Bash(pkill *)",
+      "Bash(lsof *)",
+
       "Bash(docker *)",
       "Bash(docker-compose *)",
       "Bash(psql *)",
+
       "Bash(curl *)",
+      "Bash(wget *)",
       "Bash(which *)",
       "Bash(env *)",
       "Bash(echo *)",
+      "Bash(printf *)",
+
       "Bash(gh *)",
+
       "Read(*)",
       "Edit(*)",
       "Write(*)",
       "Glob(*)",
       "Grep(*)",
-      "Bash(pnpm test)",
-      "Bash(pnpm build)",
-      "Bash(pnpm dev)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(*)"
     ]
   }
 }
