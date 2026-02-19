@@ -70,10 +70,10 @@
 
 ## 完成标志
 
-- [ ] 目录树 UI 组件实现
-- [ ] 文件夹 CRUD Server Actions 实现
-- [ ] 新建文件夹交互（inline editing）
-- [ ] 重命名和删除功能
-- [ ] 多层嵌套正常
-- [ ] 数据隔离测试通过
-- [ ] `pnpm build` 构建成功
+- [x] 目录树 UI 组件实现
+- [x] 文件夹 CRUD Server Actions 实现
+- [x] 新建文件夹交互（inline editing）
+- [x] 重命名和删除功能
+- [x] 多层嵌套正常
+- [x] 数据隔离测试通过
+- [x] `pnpm build` 构建成功

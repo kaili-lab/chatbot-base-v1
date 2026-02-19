@@ -38,7 +38,7 @@
 
 ## 完成标志
 
-- [ ] Google OAuth Provider 配置完成
-- [ ] Google 登录流程正常
-- [ ] 用户数据正确关联
-- [ ] `pnpm build` 构建成功
+- [x] Google OAuth Provider 配置完成
+- [x] Google 登录流程正常
+- [x] 用户数据正确关联
+- [x] `pnpm build` 构建成功

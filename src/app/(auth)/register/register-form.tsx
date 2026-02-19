@@ -55,7 +55,6 @@ export function RegisterForm() {
         name: values.name,
         email: values.email,
         password: values.password,
-        callbackURL: "/verify-email",
       });
 
       if (error) {

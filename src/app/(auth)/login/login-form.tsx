@@ -19,12 +19,25 @@ const initialValues = {
 
 type FieldErrors = Partial<Record<keyof typeof initialValues, string>>;
 
-export function LoginForm() {
+type LoginFormProps = {
+  verified?: boolean;
+};
+
+function isEmailNotVerifiedError(error: { message?: string } | null) {
+  if (!error?.message) return false;
+
+  const message = error.message.toUpperCase();
+  return message.includes("EMAIL_NOT_VERIFIED");
+}
+
+export function LoginForm({ verified = false }: LoginFormProps) {
   const router = useRouter();
   const [values, setValues] = useState(initialValues);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const handleChange = (field: keyof typeof initialValues, value: string) => {
     setValues((prev) => ({ ...prev, [field]: value }));
@@ -33,6 +46,7 @@ export function LoginForm() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setFormError(null);
+    setGoogleError(null);
 
     const result = loginSchema.safeParse(values);
     if (!result.success) {
@@ -54,6 +68,12 @@ export function LoginForm() {
       });
 
       if (error) {
+        if (isEmailNotVerifiedError(error)) {
+          const nextUrl = `/verify-email?email=${encodeURIComponent(values.email)}`;
+          router.push(nextUrl);
+          return;
+        }
+
         setFormError(error.message ?? "登录失败，请稍后重试");
         return;
       }
@@ -62,6 +82,26 @@ export function LoginForm() {
       router.refresh();
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (isGoogleSubmitting) return;
+
+    setGoogleError(null);
+    setFormError(null);
+    setIsGoogleSubmitting(true);
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/chat",
+      });
+
+      if (error) {
+        setGoogleError(error.message ?? "Google 登录失败，请稍后重试");
+      }
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   };
 
@@ -77,12 +117,24 @@ export function LoginForm() {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Button type="button" variant="outline" className="w-full gap-2" disabled>
+        {verified && (
+          <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+            邮箱验证成功，请使用账号登录。
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full gap-2"
+          disabled={isGoogleSubmitting}
+          onClick={handleGoogleSignIn}
+        >
           <span className="flex size-5 items-center justify-center rounded-full border text-xs">
             G
           </span>
-          使用 Google 登录
+          {isGoogleSubmitting ? "跳转中..." : "使用 Google 登录"}
         </Button>
+        {googleError && <p className="text-sm text-destructive">{googleError}</p>}
         <div className="relative">
           <Separator />
           <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">

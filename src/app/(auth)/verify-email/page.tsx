@@ -1,21 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Mail } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ResendVerificationButton } from "./resend-verification-button";
 
 export const metadata: Metadata = { title: "Verify Email - Chatbot Base" };
 
 type VerifyEmailPageProps = {
   searchParams: Promise<{
     email?: string;
+    token?: string;
+    callbackURL?: string;
   }>;
 };
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-  // Next.js 16 中 searchParams 是 Promise，先 await 才能安全读取字段，避免动态 API 运行时报错
-  const { email = "your@email.com" } = await searchParams;
+  const { email, token, callbackURL } = await searchParams;
+
+  // 兼容旧链接：如果访问的是前端 /verify-email?token=xxx，转发给 Better Auth API 完成真正校验
+  if (token) {
+    const query = new URLSearchParams({
+      token,
+      callbackURL: callbackURL ?? "/login?verified=1",
+    });
+
+    redirect(`/api/auth/verify-email?${query.toString()}`);
+  }
+
+  const emailText = email ?? "your@email.com";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
@@ -26,13 +40,11 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
           </div>
           <CardTitle className="text-xl">验证你的邮箱</CardTitle>
           <p className="text-sm text-muted-foreground">
-            我们已向 {email} 发送验证邮件，请查收并点击链接完成验证。
+            我们已向 {emailText} 发送验证邮件，请查收并点击链接完成验证。
           </p>
         </CardHeader>
         <CardContent>
-          <Button className="w-full" disabled>
-            重新发送验证邮件
-          </Button>
+          <ResendVerificationButton email={email ?? null} />
         </CardContent>
         <CardFooter className="justify-center">
           <Link href="/login" className="text-sm font-medium text-blue-600">
