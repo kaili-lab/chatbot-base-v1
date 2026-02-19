@@ -1,8 +1,8 @@
 "use client";
 
-import { ChevronRight, Folder, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, FileText, Folder, MoreHorizontal, NotebookPen, Pencil, Trash2 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { DocumentStatusBadge, type DocumentStatus } from "@/components/documents/document-status-badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,12 +11,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export type FolderTreeNode = {
   id: string;
   name: string;
   parentId: string | null;
   children: FolderTreeNode[];
+};
+
+export type DirectoryDocumentItem = {
+  id: string;
+  folderId: string | null;
+  fileName: string;
+  isNote: boolean;
+  status: DocumentStatus;
 };
 
 type NewFolderDraft = {
@@ -26,18 +35,22 @@ type NewFolderDraft = {
 
 type DirectoryTreeProps = {
   nodes: FolderTreeNode[];
+  documents: DirectoryDocumentItem[];
   selectedFolderId: string | null;
+  selectedDocumentId: string | null;
   expandedIds: Set<string>;
   renamingFolderId: string | null;
   renameValue: string;
   newFolderDraft: NewFolderDraft | null;
   onSelectFolder: (folderId: string) => void;
   onToggleFolder: (folderId: string) => void;
+  onSelectDocument: (document: DirectoryDocumentItem) => void;
   onStartRename: (folderId: string, currentName: string) => void;
   onRenameValueChange: (value: string) => void;
   onSubmitRename: (folderId: string) => void;
   onCancelRename: () => void;
   onDeleteFolder: (folderId: string) => void;
+  onDeleteDocument: (documentId: string) => void;
   onNewFolderNameChange: (value: string) => void;
   onSubmitNewFolder: () => void;
   onCancelNewFolder: () => void;
@@ -86,28 +99,94 @@ function DraftFolderInput({
 
 export function DirectoryTree({
   nodes,
+  documents,
   selectedFolderId,
+  selectedDocumentId,
   expandedIds,
   renamingFolderId,
   renameValue,
   newFolderDraft,
   onSelectFolder,
   onToggleFolder,
+  onSelectDocument,
   onStartRename,
   onRenameValueChange,
   onSubmitRename,
   onCancelRename,
   onDeleteFolder,
+  onDeleteDocument,
   onNewFolderNameChange,
   onSubmitNewFolder,
   onCancelNewFolder,
 }: DirectoryTreeProps) {
+  const documentsByFolderId = new Map<string | null, DirectoryDocumentItem[]>();
+  for (const document of documents) {
+    const list = documentsByFolderId.get(document.folderId) ?? [];
+    list.push(document);
+    documentsByFolderId.set(document.folderId, list);
+  }
+
+  const renderDocument = (document: DirectoryDocumentItem, depth: number) => {
+    const isSelected = document.id === selectedDocumentId;
+
+    return (
+      <div
+        key={document.id}
+        className={cn(
+          "group flex cursor-pointer items-center gap-2 rounded-md px-1 py-1",
+          isSelected && "bg-accent"
+        )}
+        style={{ paddingLeft: `${depth * 16 + 22}px` }}
+        onClick={() => onSelectDocument(document)}
+      >
+        {document.isNote ? (
+          <NotebookPen className="size-4 text-muted-foreground" />
+        ) : (
+          <FileText className="size-4 text-muted-foreground" />
+        )}
+
+        <span className="truncate text-sm">{document.fileName}</span>
+
+        <div className="ml-auto flex items-center gap-1">
+          <DocumentStatusBadge status={document.status} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="opacity-0 transition-opacity group-hover:opacity-100"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <MoreHorizontal className="size-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDeleteDocument(document.id);
+                }}
+              >
+                <Trash2 className="size-4" />
+                删除
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    );
+  };
+
   const renderNode = (node: FolderTreeNode, depth: number): React.ReactNode => {
     const hasChildren = node.children.length > 0;
     const isExpanded = expandedIds.has(node.id);
     const isSelected = node.id === selectedFolderId;
     const isRenaming = node.id === renamingFolderId;
     const showNewFolderInCurrent = newFolderDraft?.parentId === node.id;
+
+    const childDocuments = documentsByFolderId.get(node.id) ?? [];
 
     return (
       <div key={node.id}>
@@ -122,7 +201,7 @@ export function DirectoryTree({
             onToggleFolder(node.id);
           }}
         >
-          {hasChildren ? (
+          {hasChildren || childDocuments.length > 0 ? (
             <ChevronRight
               className={cn(
                 "size-4 text-muted-foreground transition-transform",
@@ -207,8 +286,11 @@ export function DirectoryTree({
           />
         )}
 
-        {isExpanded && hasChildren && (
-          <div>{node.children.map((child) => renderNode(child, depth + 1))}</div>
+        {isExpanded && (
+          <div>
+            {node.children.map((child) => renderNode(child, depth + 1))}
+            {childDocuments.map((document) => renderDocument(document, depth + 1))}
+          </div>
         )}
       </div>
     );
@@ -217,6 +299,7 @@ export function DirectoryTree({
   return (
     <div className="space-y-0.5">
       {nodes.map((node) => renderNode(node, 0))}
+      {(documentsByFolderId.get(null) ?? []).map((document) => renderDocument(document, 0))}
 
       {newFolderDraft?.parentId === null && (
         <DraftFolderInput

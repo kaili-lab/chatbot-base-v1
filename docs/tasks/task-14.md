@@ -92,12 +92,12 @@ interface Chunk {
 
 ## 完成标志
 
-- [ ] 文本分块器实现（递归分割 + overlap）
-- [ ] Embedding 生成器实现
-- [ ] Pipeline 编排完成
-- [ ] 文件上传后自动触发 pipeline
-- [ ] 笔记保存后自动触发 pipeline
-- [ ] 重新处理逻辑正常
-- [ ] 错误处理完善
-- [ ] 测试通过（尤其是 chunker 测试）
-- [ ] `pnpm build` 构建成功
+- [x] 文本分块器实现（递归分割 + overlap）
+- [x] Embedding 生成器实现
+- [x] Pipeline 编排完成
+- [x] 文件上传后自动触发 pipeline
+- [x] 笔记保存后自动触发 pipeline
+- [x] 重新处理逻辑正常
+- [x] 错误处理完善
+- [x] 测试通过（尤其是 chunker 测试）
+- [x] `pnpm build` 构建成功

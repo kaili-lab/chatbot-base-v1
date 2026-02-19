@@ -70,10 +70,10 @@ interface DocumentParser {
 
 ## 完成标志
 
-- [ ] DocumentParser 接口定义
-- [ ] Markdown 和 TXT 解析器实现
-- [ ] 文件上传 UI 和 Server Action
-- [ ] 文件出现在目录树中
-- [ ] 处理状态正确流转
-- [ ] 测试通过
-- [ ] `pnpm build` 构建成功
+- [x] DocumentParser 接口定义
+- [x] Markdown 和 TXT 解析器实现
+- [x] 文件上传 UI 和 Server Action
+- [x] 文件出现在目录树中
+- [x] 处理状态正确流转
+- [x] 测试通过
+- [x] `pnpm build` 构建成功
