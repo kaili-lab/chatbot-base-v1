@@ -8,13 +8,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 export const metadata: Metadata = { title: "Verify Email - Chatbot Base" };
 
 type VerifyEmailPageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     email?: string;
-  };
+  }>;
 };
 
-export default function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-  const email = searchParams?.email ?? "your@email.com";
+export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
+  // Next.js 16 中 searchParams 是 Promise，先 await 才能安全读取字段，避免动态 API 运行时报错
+  const { email = "your@email.com" } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">

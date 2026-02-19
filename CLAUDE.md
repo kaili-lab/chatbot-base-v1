@@ -32,6 +32,7 @@
 5. **环境变量**：服务端不加前缀，客户端用 `NEXT_PUBLIC_` 前缀
 6. **图片字体**：用 `next/image` 和 `next/font`
 7. **Metadata**：每个页面导出 `metadata` 对象
+8. **动态路由参数**：Next.js 16 中 Page 的 `searchParams`/`params` 在 Server Component 是 Promise，读取前先 `await`
 
 ---
 

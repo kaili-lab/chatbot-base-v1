@@ -50,6 +50,7 @@
 - `.env.local` 若为 CRLF，需先转换为 LF（`sed -i 's/\r$//' .env.local`）
 - drizzle-kit 可能写入 `~/.local/share/drizzle-studio`，需允许用户目录写入权限
 - `pnpm build` 会拉取 Google Fonts，离线环境需联网或改为本地字体
+- Next.js 16 的 Page `searchParams` / `params` 在 Server Component 中是 Promise，必须先 `await` 后再读取字段（或在 Client Component 用 `React.use()`）
 - 自关联外键避免在列上直接 `references(() => table.id)`，改用 `foreignKey` 定义
 
 ### 任务完成后（强制执行，不可省略）
