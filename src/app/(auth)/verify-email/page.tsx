@@ -18,6 +18,8 @@ type VerifyEmailPageProps = {
 
 export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
   const { email, token, callbackURL } = await searchParams;
+  const isResendTestMode =
+    (process.env.RESEND_FROM ?? "").toLowerCase().includes("onboarding@resend.dev");
 
   // 兼容旧链接：如果访问的是前端 /verify-email?token=xxx，转发给 Better Auth API 完成真正校验
   if (token) {
@@ -44,6 +46,11 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageP
           </p>
         </CardHeader>
         <CardContent>
+          {isResendTestMode && (
+            <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              当前是 Resend 测试发信模式，验证邮件会转发到 Resend 账号邮箱（不是注册邮箱）。
+            </p>
+          )}
           <ResendVerificationButton email={email ?? null} />
         </CardContent>
         <CardFooter className="justify-center">

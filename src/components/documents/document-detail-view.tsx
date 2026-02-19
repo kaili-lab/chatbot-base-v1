@@ -20,8 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const MarkdownEditor = dynamic(
-  async () => (await import("@uiw/react-md-editor")).default,
+const MarkdownPreview = dynamic(
+  async () => (await import("@uiw/react-md-editor")).default.Markdown,
   { ssr: false }
 );
 
@@ -37,6 +37,14 @@ function formatFileSize(fileSize: number) {
   return `${(fileSize / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function looksLikeMarkdown(content: string) {
+  // WHAT: 对 .txt 做轻量 Markdown 特征探测；WHY: 用户常把 Markdown 内容存成 .txt，按纯文本渲染会丢失结构可读性。
+  const markdownPattern =
+    /(^|\n)\s{0,3}(#{1,6}\s|>\s|[-*+]\s|\d+\.\s|```)|\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*/m;
+
+  return markdownPattern.test(content);
+}
+
 type DocumentDetailViewProps = {
   document: DocumentDetail;
 };
@@ -45,6 +53,7 @@ export function DocumentDetailView({ document }: DocumentDetailViewProps) {
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, startDeleting] = useTransition();
+  const shouldRenderMarkdown = document.fileType === "md" || looksLikeMarkdown(document.content);
 
   const handleDelete = () => {
     startDeleting(async () => {
@@ -63,58 +72,64 @@ export function DocumentDetailView({ document }: DocumentDetailViewProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-2">
-          <Button asChild variant="ghost" size="sm" className="-ml-2 w-fit">
-            <Link href="/documents">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-3">
+        <div className="flex items-start gap-3">
+          <Button asChild variant="ghost" size="icon-sm" className="mt-0.5">
+            <Link href="/documents" aria-label="返回文档列表">
               <ArrowLeft className="size-4" />
-              返回文档列表
             </Link>
           </Button>
 
-          <div className="flex items-center gap-2">
-            {document.isNote ? (
-              <NotebookPen className="size-5 text-muted-foreground" />
-            ) : (
-              <FileText className="size-5 text-muted-foreground" />
-            )}
-            <h1 className="text-2xl font-semibold tracking-tight">{document.fileName}</h1>
+          <div>
+            <div className="flex items-center gap-2">
+              {document.isNote ? (
+                <NotebookPen className="size-4 text-muted-foreground" />
+              ) : (
+                <FileText className="size-4 text-muted-foreground" />
+              )}
+              <h1 className="text-xl font-semibold tracking-tight">
+                {document.fileName}
+              </h1>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {new Date(document.createdAt).toLocaleDateString("zh-CN")} • {formatFileSize(document.fileSize)}
+            </p>
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            {new Date(document.createdAt).toLocaleDateString("zh-CN")} • {formatFileSize(document.fileSize)}
-            {document.status === "completed" && ` • ${document.chunkCount} chunks indexed`}
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <DocumentStatusBadge status={document.status} />
           {document.isNote && (
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link href={`/documents/${document.id}/edit`}>编辑</Link>
             </Button>
           )}
-          <Button variant="ghost" className="text-destructive" onClick={() => setDeleteDialogOpen(true)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-destructive"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
             <Trash2 className="size-4" />
             删除
           </Button>
         </div>
       </div>
 
-      <div className="max-h-[60vh] overflow-y-auto rounded-md border p-4">
-        {document.fileType === "md" ? (
-          <div data-color-mode="light">
-            <MarkdownEditor
-              value={document.content}
-              preview="preview"
-              hideToolbar
-              visibleDragbar={false}
-              textareaProps={{ readOnly: true }}
+      <div className="min-h-[360px] max-h-[calc(100vh-220px)] overflow-y-auto rounded-md border bg-white p-4 dark:bg-background">
+        {shouldRenderMarkdown ? (
+          <div data-color-mode="light" className="wmde-markdown-var">
+            <MarkdownPreview
+              source={document.content}
+              style={{
+                backgroundColor: "transparent",
+                color: "inherit",
+              }}
             />
           </div>
         ) : (
-          <pre className="whitespace-pre-wrap font-mono text-sm leading-6">{document.content}</pre>
+          <pre className="whitespace-pre-wrap font-mono text-sm leading-7">{document.content}</pre>
         )}
       </div>
 

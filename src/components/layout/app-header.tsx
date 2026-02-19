@@ -29,19 +29,17 @@ export function AppHeader() {
   };
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 lg:px-6">
-      {/* 左侧：移动端菜单 + 面包屑 */}
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-white px-4 lg:px-5 dark:bg-background">
       <SidebarTrigger className="lg:hidden" />
       <Separator orientation="vertical" className="mr-2 h-4 lg:hidden" />
       <BreadcrumbNav />
 
-      {/* 右侧工具栏 */}
       <div className="ml-auto flex items-center gap-1">
         <div className="relative hidden md:block">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search..."
-            className="h-9 w-[200px] pl-8 lg:w-[260px]"
+            className="h-8 w-[190px] border-0 bg-muted pl-8 text-xs shadow-none lg:w-[210px]"
             readOnly
           />
         </div>

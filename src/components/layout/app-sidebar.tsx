@@ -6,6 +6,7 @@ import { FileText, Hexagon, MessageSquare, Settings } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/auth/client";
+import { useAppShellSidebarAddon } from "@/components/layout/app-shell-context";
 import {
   Sidebar,
   SidebarCollapseButton,
@@ -24,22 +25,24 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
+  const sidebarAddon = useAppShellSidebarAddon();
   const { data: session, isPending } = useSession();
+
   const displayName = isPending
-    ? "加载中..."
-    : session?.user?.name || session?.user?.email || "未登录";
+    ? "Loading..."
+    : session?.user?.name || session?.user?.email || "Guest User";
+
   const avatarLabel = isPending
     ? "…"
     : displayName.trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <Sidebar className="relative">
+    <Sidebar className="relative bg-[#f8fafc] dark:bg-[#0f1115]">
       <SidebarCollapseButton />
 
-      {/* Logo */}
-      <SidebarHeader>
+      <SidebarHeader className="h-16 border-b border-sidebar-border px-5">
         <Link href="/chat" className="flex items-center gap-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#2f6df6] text-white">
             <Hexagon className="size-4" />
           </div>
           {!collapsed && (
@@ -48,9 +51,8 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
 
-      {/* 导航 */}
-      <SidebarContent>
-        <nav className="grid gap-0.5 px-2">
+      <SidebarContent className="overflow-x-hidden py-3">
+        <nav className="grid gap-1 px-2">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -61,10 +63,10 @@ export function AppSidebar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   collapsed && "justify-center px-2",
                   isActive
-                    ? "bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400"
+                    ? "bg-[#dbeafe] text-[#2f6df6] dark:bg-[#1f2b3d] dark:text-[#8bb2ff]"
                     : "text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                 )}
               >
@@ -74,21 +76,26 @@ export function AppSidebar() {
             );
           })}
         </nav>
+
+        {!collapsed && sidebarAddon ? (
+          <div className="mt-3 border-t border-sidebar-border px-2 pt-3">{sidebarAddon}</div>
+        ) : null}
       </SidebarContent>
 
-      {/* 用户信息占位 */}
-      <SidebarFooter>
+      <SidebarFooter className="bg-[#f8fafc] dark:bg-[#0f1115]">
         <div
           className={cn(
-            "flex items-center gap-3",
+            "flex items-center gap-2.5",
             collapsed && "justify-center"
           )}
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
+          <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8b5cf6] to-[#3b82f6] text-xs font-semibold text-white">
             {avatarLabel}
           </div>
           {!collapsed && (
-            <span className="truncate text-sm font-medium">{displayName}</span>
+            <span className="truncate text-xs font-medium text-foreground/80">
+              {displayName}
+            </span>
           )}
         </div>
       </SidebarFooter>

@@ -1,9 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, FileText, FolderPlus, NotebookPen, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  FolderPlus,
+  NotebookPen,
+  Upload,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +24,7 @@ import {
   createNote,
   deleteDocument,
   deleteFolder,
+  renameDocument,
   renameFolder,
   uploadDocuments,
 } from "@/app/(app)/documents/actions";
@@ -18,13 +32,13 @@ import { DirectoryTree, type FolderTreeNode } from "@/components/documents/direc
 import { DocumentDetailView } from "@/components/documents/document-detail-view";
 import { FolderSelectorTree } from "@/components/documents/folder-selector-tree";
 import { NoteEditor } from "@/components/documents/note-editor";
+import { useSetAppShellSidebarAddon } from "@/components/layout/app-shell-context";
 import type {
   DocumentDetail,
   WorkspaceDocument,
   WorkspaceFolder,
 } from "@/components/documents/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +70,11 @@ type DocumentsWorkspaceProps = {
 type NewFolderDraft = {
   parentId: string | null;
   name: string;
+};
+
+type RenameDocumentDraft = {
+  id: string;
+  fileName: string;
 };
 
 function buildFolderTree(folders: WorkspaceFolder[]) {
@@ -144,6 +163,7 @@ export function DocumentsWorkspace({
   view,
 }: DocumentsWorkspaceProps) {
   const router = useRouter();
+  const setSidebarAddon = useSetAppShellSidebarAddon();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeDocument = useMemo(
@@ -169,6 +189,8 @@ export function DocumentsWorkspace({
 
   const [pendingDeleteFolderId, setPendingDeleteFolderId] = useState<string | null>(null);
   const [pendingDeleteDocumentId, setPendingDeleteDocumentId] = useState<string | null>(null);
+  const [renamingDocument, setRenamingDocument] = useState<RenameDocumentDraft | null>(null);
+  const [renameDocumentValue, setRenameDocumentValue] = useState("");
 
   const treeNodes = useMemo(() => buildFolderTree(initialFolders), [initialFolders]);
 
@@ -202,8 +224,9 @@ export function DocumentsWorkspace({
     }
 
     const subtreeIds = new Set(collectDescendantIds(initialFolders, pendingDeleteFolderId));
-    return initialDocuments.filter((document) => document.folderId && subtreeIds.has(document.folderId))
-      .length;
+    return initialDocuments.filter(
+      (document) => document.folderId && subtreeIds.has(document.folderId)
+    ).length;
   }, [initialDocuments, initialFolders, pendingDeleteFolderId]);
 
   const pendingDeleteDocument = useMemo(
@@ -211,7 +234,7 @@ export function DocumentsWorkspace({
     [initialDocuments, pendingDeleteDocumentId]
   );
 
-  const handleToggleFolder = (folderId: string) => {
+  const handleToggleFolder = useCallback((folderId: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(folderId)) {
@@ -221,9 +244,9 @@ export function DocumentsWorkspace({
       }
       return next;
     });
-  };
+  }, []);
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = useCallback(() => {
     const parentId = selectedFolderId ?? null;
 
     if (parentId) {
@@ -245,14 +268,14 @@ export function DocumentsWorkspace({
       name: "",
     });
     setRenamingFolderId(null);
-  };
+  }, [initialFolders, selectedFolderId]);
 
-  const submitNewFolder = () => {
+  const submitNewFolder = useCallback((draftName: string) => {
     if (!newFolderDraft) {
       return;
     }
 
-    const folderName = newFolderDraft.name.trim();
+    const folderName = draftName.trim();
     if (!folderName) {
       toast.error("请输入文件夹名称");
       return;
@@ -270,102 +293,144 @@ export function DocumentsWorkspace({
       setNewFolderDraft(null);
       router.refresh();
     });
-  };
+  }, [newFolderDraft, router]);
 
-  const handleStartRename = (folderId: string, currentName: string) => {
+  const handleStartRename = useCallback((folderId: string, currentName: string) => {
     setRenamingFolderId(folderId);
     setRenameValue(currentName);
     setNewFolderDraft(null);
-  };
+  }, []);
 
-  const submitRename = (folderId: string) => {
-    const nextName = renameValue.trim();
-    if (!nextName) {
-      toast.error("请输入文件夹名称");
-      return;
-    }
-
-    startMutation(async () => {
-      const result = await renameFolder(folderId, nextName);
-      if (!result.success) {
-        toast.error(result.message ?? "重命名失败");
+  const submitRename = useCallback(
+    (folderId: string) => {
+      const nextName = renameValue.trim();
+      if (!nextName) {
+        toast.error("请输入文件夹名称");
         return;
       }
 
-      toast.success("重命名成功");
-      setRenamingFolderId(null);
-      setRenameValue("");
-      router.refresh();
+      startMutation(async () => {
+        const result = await renameFolder(folderId, nextName);
+        if (!result.success) {
+          toast.error(result.message ?? "重命名失败");
+          return;
+        }
+
+        toast.success("重命名成功");
+        setRenamingFolderId(null);
+        setRenameValue("");
+        router.refresh();
+      });
+    },
+    [renameValue, router]
+  );
+
+  const handleStartRenameDocument = useCallback((documentId: string, currentFileName: string) => {
+    setRenamingDocument({
+      id: documentId,
+      fileName: currentFileName,
     });
-  };
+    setRenameDocumentValue(currentFileName);
+  }, []);
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleUploadChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = event.target.files;
-    if (!fileList || fileList.length === 0) {
+  const submitRenameDocument = useCallback(() => {
+    if (!renamingDocument) {
       return;
     }
 
-    const formData = new FormData();
-    if (selectedFolderId) {
-      formData.append("folderId", selectedFolderId);
+    const nextName = renameDocumentValue.trim();
+    if (!nextName) {
+      toast.error("请输入文件名");
+      return;
     }
 
-    Array.from(fileList).forEach((file) => {
-      formData.append("files", file);
-    });
-
     startMutation(async () => {
-      const result = await uploadDocuments(formData);
+      const result = await renameDocument(renamingDocument.id, nextName);
       if (!result.success) {
-        toast.error(result.message ?? "上传失败");
-      } else {
-        toast.success(result.message ?? "上传成功");
+        toast.error(result.message ?? "重命名文件失败");
+        return;
       }
 
-      event.target.value = "";
+      toast.success("文件重命名成功");
+      setRenamingDocument(null);
+      setRenameDocumentValue("");
       router.refresh();
     });
-  };
+  }, [renameDocumentValue, renamingDocument, router]);
 
-  const openNewNoteDialog = () => {
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleUploadChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const fileList = event.target.files;
+      if (!fileList || fileList.length === 0) {
+        return;
+      }
+
+      const formData = new FormData();
+      if (selectedFolderId) {
+        formData.append("folderId", selectedFolderId);
+      }
+
+      Array.from(fileList).forEach((file) => {
+        formData.append("files", file);
+      });
+
+      startMutation(async () => {
+        const result = await uploadDocuments(formData);
+        if (!result.success) {
+          toast.error(result.message ?? "上传失败");
+        } else {
+          toast.success(result.message ?? "上传成功");
+        }
+
+        event.target.value = "";
+        router.refresh();
+      });
+    },
+    [router, selectedFolderId]
+  );
+
+  const openNewNoteDialog = useCallback(() => {
     setNewNoteDialogOpen(true);
     setNewNoteTitle("");
     setNewNoteFolderId(selectedFolderId);
     setNewNoteExpandedIds(new Set(expandedIds));
-  };
+  }, [expandedIds, selectedFolderId]);
 
-  const submitCreateNote = (forceRoot = false) => {
-    const title = newNoteTitle.trim();
-    if (!title) {
-      toast.error("请输入笔记标题");
-      return;
-    }
-
-    if (!newNoteFolderId && !forceRoot) {
-      setConfirmRootDialogOpen(true);
-      return;
-    }
-
-    startMutation(async () => {
-      const result = await createNote(title, newNoteFolderId);
-      if (!result.success || !result.document) {
-        toast.error(result.message ?? "创建笔记失败");
+  const submitCreateNote = useCallback(
+    (forceRoot = false) => {
+      const title = newNoteTitle.trim();
+      if (!title) {
+        toast.error("请输入笔记标题");
         return;
       }
 
-      toast.success("笔记创建成功");
-      setNewNoteDialogOpen(false);
-      setConfirmRootDialogOpen(false);
-      router.push(`/documents/${result.document.id}/edit`);
-      router.refresh();
-    });
-  };
+      if (!newNoteFolderId && !forceRoot) {
+        setConfirmRootDialogOpen(true);
+        return;
+      }
 
-  const confirmDeleteFolder = () => {
+      startMutation(async () => {
+        const result = await createNote(title, newNoteFolderId);
+        if (!result.success || !result.document) {
+          toast.error(result.message ?? "创建笔记失败");
+          return;
+        }
+
+        toast.success("笔记创建成功");
+        setNewNoteDialogOpen(false);
+        setConfirmRootDialogOpen(false);
+        router.push(`/documents/${result.document.id}/edit`);
+        router.refresh();
+      });
+    },
+    [newNoteFolderId, newNoteTitle, router]
+  );
+
+  const confirmDeleteFolder = useCallback(() => {
     if (!pendingDeleteFolderId) {
       return;
     }
@@ -389,9 +454,9 @@ export function DocumentsWorkspace({
 
       router.refresh();
     });
-  };
+  }, [activeDocumentId, pendingDeleteFolderId, router, selectedFolderId, view.type]);
 
-  const confirmDeleteDocument = () => {
+  const confirmDeleteDocument = useCallback(() => {
     if (!pendingDeleteDocumentId) {
       return;
     }
@@ -412,10 +477,88 @@ export function DocumentsWorkspace({
 
       router.refresh();
     });
-  };
+  }, [activeDocumentId, pendingDeleteDocumentId, router]);
+
+  const handleSelectDocument = useCallback(
+    (document: {
+      id: string;
+      isNote: boolean;
+    }) => {
+      const nextPath = document.isNote
+        ? `/documents/${document.id}/edit`
+        : `/documents/${document.id}`;
+      router.push(nextPath);
+    },
+    [router]
+  );
+
+  const sidebarTree = useMemo(
+    () => (
+      <div className="space-y-2 pb-3">
+        <p className="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground">
+          DIRECTORY
+        </p>
+        <DirectoryTree
+          nodes={treeNodes}
+          documents={initialDocuments.map((document) => ({
+            id: document.id,
+            folderId: document.folderId,
+            fileName: document.fileName,
+            isNote: document.isNote,
+            status: document.status,
+          }))}
+          selectedFolderId={selectedFolderId}
+          selectedDocumentId={activeDocumentId}
+          expandedIds={expandedIds}
+          renamingFolderId={renamingFolderId}
+          renameValue={renameValue}
+          newFolderDraft={newFolderDraft}
+          onSelectFolder={setSelectedFolderId}
+          onToggleFolder={handleToggleFolder}
+          onSelectDocument={handleSelectDocument}
+          onStartRename={handleStartRename}
+          onRenameValueChange={setRenameValue}
+          onSubmitRename={submitRename}
+          onCancelRename={() => {
+            setRenamingFolderId(null);
+            setRenameValue("");
+          }}
+          onDeleteFolder={(folderId) => setPendingDeleteFolderId(folderId)}
+          onDeleteDocument={(documentId) => setPendingDeleteDocumentId(documentId)}
+          onStartRenameDocument={handleStartRenameDocument}
+          onSubmitNewFolder={submitNewFolder}
+          onCancelNewFolder={() => setNewFolderDraft(null)}
+        />
+      </div>
+    ),
+    [
+      activeDocumentId,
+      expandedIds,
+      handleSelectDocument,
+      handleStartRename,
+      handleStartRenameDocument,
+      handleToggleFolder,
+      initialDocuments,
+      newFolderDraft,
+      renameValue,
+      renamingFolderId,
+      selectedFolderId,
+      submitNewFolder,
+      submitRename,
+      treeNodes,
+    ]
+  );
+
+  useEffect(() => {
+    setSidebarAddon(sidebarTree);
+
+    return () => {
+      setSidebarAddon(null);
+    };
+  }, [setSidebarAddon, sidebarTree]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full min-h-0 flex-col bg-white dark:bg-background">
       <input
         ref={fileInputRef}
         type="file"
@@ -425,109 +568,72 @@ export function DocumentsWorkspace({
         onChange={handleUploadChange}
       />
 
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">文档管理</h1>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <Card className="h-fit py-4">
-          <CardContent className="space-y-3 px-4">
-            <p className="text-xs font-semibold tracking-wide text-muted-foreground">DIRECTORY</p>
-
-            <DirectoryTree
-              nodes={treeNodes}
-              documents={initialDocuments.map((document) => ({
-                id: document.id,
-                folderId: document.folderId,
-                fileName: document.fileName,
-                isNote: document.isNote,
-                status: document.status,
-              }))}
-              selectedFolderId={selectedFolderId}
-              selectedDocumentId={activeDocumentId}
-              expandedIds={expandedIds}
-              renamingFolderId={renamingFolderId}
-              renameValue={renameValue}
-              newFolderDraft={newFolderDraft}
-              onSelectFolder={setSelectedFolderId}
-              onToggleFolder={handleToggleFolder}
-              onSelectDocument={(document) => {
-                const nextPath = document.isNote
-                  ? `/documents/${document.id}/edit`
-                  : `/documents/${document.id}`;
-                router.push(nextPath);
-              }}
-              onStartRename={handleStartRename}
-              onRenameValueChange={setRenameValue}
-              onSubmitRename={submitRename}
-              onCancelRename={() => {
-                setRenamingFolderId(null);
-                setRenameValue("");
-              }}
-              onDeleteFolder={(folderId) => setPendingDeleteFolderId(folderId)}
-              onDeleteDocument={(documentId) => setPendingDeleteDocumentId(documentId)}
-              onNewFolderNameChange={(value) => {
-                setNewFolderDraft((prev) => (prev ? { ...prev, name: value } : prev));
-              }}
-              onSubmitNewFolder={submitNewFolder}
-              onCancelNewFolder={() => setNewFolderDraft(null)}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="min-h-[420px] py-6">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm text-muted-foreground">
-                {selectedFolderId ? "当前上传目录：已选择文件夹" : "当前上传目录：根目录"}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button disabled={isMutating} onClick={handleCreateFolder}>
-                  <FolderPlus className="size-4" />
-                  New Folder
-                </Button>
-                <Button type="button" variant="outline" disabled={isMutating} onClick={openNewNoteDialog}>
-                  <NotebookPen className="size-4" />
-                  New Note
-                </Button>
-                <Button type="button" variant="outline" disabled={isMutating} onClick={handleUploadClick}>
-                  <Upload className="size-4" />
-                  Upload File
-                </Button>
-              </div>
+      <div className="flex min-h-0 flex-1 flex-col">
+        {view.type === "home" && (
+          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+            <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+              <FileText className="size-8 text-muted-foreground" />
             </div>
+            <h2 className="text-4xl font-semibold tracking-tight text-foreground/90">
+              Knowledge Base
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+              Select a document from the sidebar to view its content, or add new
+              content to your knowledge base.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isMutating}
+                onClick={handleCreateFolder}
+              >
+                <FolderPlus className="size-4" />
+                New Folder
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isMutating}
+                onClick={openNewNoteDialog}
+              >
+                <NotebookPen className="size-4" />
+                New Note
+              </Button>
+              <Button type="button" disabled={isMutating} onClick={handleUploadClick}>
+                <Upload className="size-4" />
+                Upload File
+              </Button>
+            </div>
+          </div>
+        )}
 
-            {view.type === "home" && (
-              <div className="flex h-[320px] flex-col items-center justify-center gap-3 rounded-md border border-dashed text-center">
-                <FileText className="size-8 text-muted-foreground" />
-                <div>
-                  <h2 className="text-lg font-semibold tracking-tight">Knowledge Base</h2>
-                  <p className="text-sm text-muted-foreground">
-                    上传文件或创建笔记后，可以在左侧目录树查看并管理内容。
-                  </p>
-                </div>
+        {view.type === "detail" && (
+          <div className="min-h-0 flex-1 overflow-auto px-6 py-5">
+            <DocumentDetailView document={view.document} />
+          </div>
+        )}
+
+        {view.type === "edit" && (
+          <div className="min-h-0 flex-1 overflow-auto px-6 py-5">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Button asChild variant="ghost" size="sm" className="-ml-2">
+                  <Link href={`/documents/${view.document.id}`}>
+                    <ArrowLeft className="size-4" />
+                    返回详情
+                  </Link>
+                </Button>
+                <span className="text-sm text-muted-foreground">编辑笔记</span>
               </div>
-            )}
-
-            {view.type === "detail" && <DocumentDetailView document={view.document} />}
-
-            {view.type === "edit" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Button asChild variant="ghost" size="sm" className="-ml-2">
-                    <Link href={`/documents/${view.document.id}`}>
-                      <ArrowLeft className="size-4" />
-                      返回详情
-                    </Link>
-                  </Button>
-                  <span className="text-sm text-muted-foreground">编辑笔记</span>
-                </div>
-                <h2 className="text-xl font-semibold tracking-tight">{view.document.fileName}</h2>
-                <NoteEditor documentId={view.document.id} initialContent={view.document.content} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              <h2 className="text-2xl font-semibold tracking-tight">{view.document.fileName}</h2>
+              <NoteEditor
+                documentId={view.document.id}
+                initialContent={view.document.content}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={newNoteDialogOpen} onOpenChange={setNewNoteDialogOpen}>
@@ -614,6 +720,50 @@ export function DocumentsWorkspace({
       </Dialog>
 
       <Dialog
+        open={Boolean(renamingDocument)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenamingDocument(null);
+            setRenameDocumentValue("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>重命名文件</DialogTitle>
+            <DialogDescription>
+              当前文件：{renamingDocument?.fileName}。请输入新的文件名，系统会自动保留原有文件后缀。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label htmlFor="rename-document-input" className="text-sm font-medium">
+              文件名
+            </label>
+            <Input
+              id="rename-document-input"
+              autoFocus
+              value={renameDocumentValue}
+              onChange={(event) => setRenameDocumentValue(event.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRenamingDocument(null);
+                setRenameDocumentValue("");
+              }}
+            >
+              取消
+            </Button>
+            <Button disabled={isMutating} onClick={submitRenameDocument}>
+              {isMutating ? "保存中..." : "确认保存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={Boolean(pendingDeleteFolder)}
         onOpenChange={(open) => {
           if (!open) {
@@ -625,7 +775,8 @@ export function DocumentsWorkspace({
           <DialogHeader>
             <DialogTitle>删除文件夹</DialogTitle>
             <DialogDescription>
-              确认删除“{pendingDeleteFolder?.name}”？该目录下 {pendingDeleteFolderFileCount} 个文件及子文件夹将被一并删除，删除后无法恢复。
+              确认删除“{pendingDeleteFolder?.name}”？该目录下 {pendingDeleteFolderFileCount}{" "}
+              个文件及子文件夹将被一并删除，删除后无法恢复。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -58,7 +58,7 @@ export function RegisterForm() {
       });
 
       if (error) {
-        setFormError(error.message ?? "注册失败，请稍后重试");
+        setFormError(error.message ?? "Registration failed, please try again later.");
         return;
       }
 
@@ -71,19 +71,20 @@ export function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center text-center">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white">
-          <Hexagon className="size-5" />
+    <Card className="w-full max-w-[390px] border bg-white shadow-md">
+      <CardHeader className="items-center gap-2 text-center">
+        <div className="flex items-center gap-2 text-[#2f6df6]">
+          <Hexagon className="size-6 fill-current" />
+          <span className="text-xl font-semibold tracking-tight">Agent</span>
         </div>
-        <CardTitle className="text-xl">创建账号</CardTitle>
-        <p className="text-sm text-muted-foreground">填写信息以开始使用 Agent</p>
+        <CardTitle className="text-3xl font-semibold">Create an account</CardTitle>
+        <p className="text-sm text-muted-foreground">Enter your information to get started</p>
       </CardHeader>
       <CardContent>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label htmlFor="name" className="text-sm font-medium">
-              用户名
+              Full Name
             </label>
             <Input
               id="name"
@@ -98,7 +99,7 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
-              邮箱
+              Email
             </label>
             <Input
               id="email"
@@ -114,7 +115,7 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">
-              密码
+              Password
             </label>
             <Input
               id="password"
@@ -129,7 +130,7 @@ export function RegisterForm() {
           </div>
           <div className="space-y-2">
             <label htmlFor="confirmPassword" className="text-sm font-medium">
-              确认密码
+              Confirm Password
             </label>
             <Input
               id="confirmPassword"
@@ -147,16 +148,20 @@ export function RegisterForm() {
             )}
           </div>
           {formError && <p className="text-sm text-destructive">{formError}</p>}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "注册中..." : "注册"}
+          <Button
+            type="submit"
+            className="h-11 w-full bg-[#2f6df6] hover:bg-[#265fdb]"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Creating account..." : "Create account"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="justify-center">
         <span className="text-sm text-muted-foreground">
-          已有账号？
-          <Link href="/login" className="ml-1 font-medium text-blue-600">
-            登录
+          Already have an account?
+          <Link href="/login" className="ml-1 font-medium text-[#2f6df6]">
+            Login
           </Link>
         </span>
       </CardFooter>

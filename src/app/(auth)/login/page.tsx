@@ -15,7 +15,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const isVerified = verified === "1";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-[#f3f5f9] px-4 py-10">
       <LoginForm verified={isVerified} />
     </div>
   );

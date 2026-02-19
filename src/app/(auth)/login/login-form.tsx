@@ -74,7 +74,7 @@ export function LoginForm({ verified = false }: LoginFormProps) {
           return;
         }
 
-        setFormError(error.message ?? "登录失败，请稍后重试");
+        setFormError(error.message ?? "Login failed, please try again later.");
         return;
       }
 
@@ -98,7 +98,7 @@ export function LoginForm({ verified = false }: LoginFormProps) {
       });
 
       if (error) {
-        setGoogleError(error.message ?? "Google 登录失败，请稍后重试");
+        setGoogleError(error.message ?? "Google sign-in failed, please try again later.");
       }
     } finally {
       setIsGoogleSubmitting(false);
@@ -106,45 +106,48 @@ export function LoginForm({ verified = false }: LoginFormProps) {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="items-center text-center">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-blue-600 text-white">
-          <Hexagon className="size-5" />
+    <Card className="w-full max-w-[390px] border bg-white shadow-md">
+      <CardHeader className="items-center gap-2 text-center">
+        <div className="flex items-center gap-2 text-[#2f6df6]">
+          <Hexagon className="size-6 fill-current" />
+          <span className="text-xl font-semibold tracking-tight">Agent</span>
         </div>
-        <CardTitle className="text-xl">欢迎回来</CardTitle>
+        <CardTitle className="text-3xl font-semibold">Welcome back</CardTitle>
         <p className="text-sm text-muted-foreground">
-          请输入账号信息以继续使用 Agent
+          Enter your credentials to access your account
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {verified && (
           <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
-            邮箱验证成功，请使用账号登录。
+            Email verified successfully. You can sign in now.
           </p>
         )}
         <Button
           type="button"
           variant="outline"
-          className="w-full gap-2"
+          className="h-10 w-full gap-2"
           disabled={isGoogleSubmitting}
           onClick={handleGoogleSignIn}
         >
           <span className="flex size-5 items-center justify-center rounded-full border text-xs">
             G
           </span>
-          {isGoogleSubmitting ? "跳转中..." : "使用 Google 登录"}
+          {isGoogleSubmitting ? "Redirecting..." : "Sign in with Google"}
         </Button>
         {googleError && <p className="text-sm text-destructive">{googleError}</p>}
-        <div className="relative">
+
+        <div className="relative py-1">
           <Separator />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-            或
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-[11px] text-muted-foreground">
+            OR CONTINUE WITH
           </span>
         </div>
+
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-medium">
-              邮箱
+              Email
             </label>
             <Input
               id="email"
@@ -158,10 +161,16 @@ export function LoginForm({ verified = false }: LoginFormProps) {
               <p className="text-xs text-destructive">{fieldErrors.email}</p>
             )}
           </div>
+
           <div className="space-y-2">
-            <label htmlFor="password" className="text-sm font-medium">
-              密码
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <Link href="/login" className="text-xs font-medium text-[#2f6df6]">
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"
@@ -173,17 +182,23 @@ export function LoginForm({ verified = false }: LoginFormProps) {
               <p className="text-xs text-destructive">{fieldErrors.password}</p>
             )}
           </div>
+
           {formError && <p className="text-sm text-destructive">{formError}</p>}
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "登录中..." : "登录"}
+
+          <Button
+            type="submit"
+            className="h-11 w-full bg-[#2f6df6] hover:bg-[#265fdb]"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="justify-center">
         <span className="text-sm text-muted-foreground">
-          还没有账号？
-          <Link href="/register" className="ml-1 font-medium text-blue-600">
-            注册
+          Don&apos;t have an account?
+          <Link href="/register" className="ml-1 font-medium text-[#2f6df6]">
+            Sign up
           </Link>
         </span>
       </CardFooter>

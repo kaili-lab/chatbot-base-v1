@@ -6,7 +6,7 @@ import { ChevronLeft, PanelLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const SIDEBAR_WIDTH = "16rem";
+const SIDEBAR_WIDTH = "13.5rem";
 const SIDEBAR_WIDTH_COLLAPSED = "3.5rem";
 
 type SidebarContextValue = {
@@ -68,7 +68,6 @@ const Sidebar = React.forwardRef<
 
   return (
     <>
-      {/* 移动端遮罩 */}
       {isMobile && open ? (
         <div
           className="fixed inset-0 z-40 bg-black/40"
@@ -76,7 +75,6 @@ const Sidebar = React.forwardRef<
         />
       ) : null}
 
-      {/* 侧边栏 */}
       <aside
         ref={ref}
         data-collapsed={collapsed}
@@ -87,7 +85,7 @@ const Sidebar = React.forwardRef<
           } as React.CSSProperties
         }
         className={cn(
-          "group/sidebar fixed inset-y-0 left-0 z-50 flex h-full flex-col border-r border-sidebar-border bg-sidebar-background text-sidebar-foreground transition-[width,transform] duration-200 ease-in-out lg:static lg:z-auto",
+          "group/sidebar fixed inset-y-0 left-0 z-50 flex h-dvh flex-col border-r border-sidebar-border bg-sidebar-background text-sidebar-foreground transition-[width,transform] duration-200 ease-in-out lg:static lg:z-auto lg:h-auto lg:min-h-screen",
           collapsed
             ? "w-[var(--sidebar-width-collapsed)]"
             : "w-[var(--sidebar-width)]",
@@ -135,7 +133,7 @@ const SidebarFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("border-t border-sidebar-border px-4 py-3", className)}
+    className={cn("mt-auto border-t border-sidebar-border px-4 py-3", className)}
     {...props}
   />
 ));
@@ -147,13 +145,12 @@ const SidebarInset = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex min-h-screen flex-1 flex-col overflow-hidden", className)}
+    className={cn("flex min-h-screen min-w-0 flex-1 flex-col overflow-hidden", className)}
     {...props}
   />
 ));
 SidebarInset.displayName = "SidebarInset";
 
-/* 桌面端折叠按钮 — 参考截图中的 chevron 样式 */
 function SidebarCollapseButton({ className }: { className?: string }) {
   const { collapsed, setCollapsed } = useSidebar();
 
@@ -163,7 +160,7 @@ function SidebarCollapseButton({ className }: { className?: string }) {
       aria-label={collapsed ? "展开侧边栏" : "折叠侧边栏"}
       onClick={() => setCollapsed(!collapsed)}
       className={cn(
-        "hidden lg:flex absolute -right-3 top-5 z-10 size-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-background text-sidebar-muted-foreground shadow-sm transition-colors hover:text-sidebar-foreground",
+        "absolute -right-3 top-5 z-10 hidden size-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-background text-sidebar-muted-foreground shadow-sm transition-colors hover:text-sidebar-foreground lg:flex",
         className
       )}
     >
@@ -177,7 +174,6 @@ function SidebarCollapseButton({ className }: { className?: string }) {
   );
 }
 
-/* 移动端触发按钮 */
 type SidebarTriggerProps = React.ComponentPropsWithoutRef<typeof Button>;
 
 function SidebarTrigger({ className, ...props }: SidebarTriggerProps) {

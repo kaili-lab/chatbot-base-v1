@@ -19,6 +19,13 @@ const authBaseUrlValue = authBaseUrl;
 const resendFrom = process.env.RESEND_FROM ?? "Chatbot Base <onboarding@resend.dev>";
 const resend = new Resend(resendApiKey);
 
+type ResendError = {
+  name?: string;
+  message?: string;
+  statusCode?: number | null;
+  status?: number | null;
+};
+
 function buildVerificationUrl(token: string) {
   const base = new URL(authBaseUrlValue);
   const basePath = base.pathname.replace(/\/$/, "");
@@ -33,11 +40,82 @@ function buildVerificationUrl(token: string) {
   return url.toString();
 }
 
+function extractResendTestRecipient(errorMessage?: string) {
+  if (!errorMessage) {
+    return null;
+  }
+
+  const match = errorMessage.match(/\(([^()\s]+@[^()\s]+)\)/);
+  return match?.[1] ?? null;
+}
+
+function isResendTestingModeBlocked(error: ResendError) {
+  const statusCode = error.statusCode ?? error.status;
+  return (
+    statusCode === 403 &&
+    resendFrom.toLowerCase().includes("onboarding@resend.dev")
+  );
+}
+
+function formatResendErrorMessage(error: ResendError) {
+  if (isResendTestingModeBlocked(error)) {
+    return "Resend 处于测试发信模式：当前 from 地址只能发送到账号邮箱。请配置已验证域名的 RESEND_FROM。";
+  }
+
+  return error.message ?? "发送验证邮件失败，请稍后重试。";
+}
+
+async function sendWithResend(params: {
+  to: string;
+  subject: string;
+  html: string;
+}) {
+  const response = await resend.emails.send({
+    from: resendFrom,
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+  });
+
+  if (!response.error) {
+    return;
+  }
+
+  // 在 Resend 测试模式下自动回退到账号邮箱，保证本地调试可拿到验证链接
+  if (isResendTestingModeBlocked(response.error)) {
+    const testRecipient = extractResendTestRecipient(response.error.message);
+
+    if (testRecipient) {
+      const fallbackResponse = await resend.emails.send({
+        from: resendFrom,
+        to: testRecipient,
+        subject: `[DEV FORWARD] ${params.subject}`,
+        html: `
+          ${params.html}
+          <p style="margin-top: 16px; color: #64748b;">
+            Original recipient: ${params.to}
+          </p>
+        `,
+      });
+
+      if (!fallbackResponse.error) {
+        console.warn(
+          `[email] Resend test mode detected, verification email forwarded to account inbox (${testRecipient}).`
+        );
+        return;
+      }
+
+      throw new Error(formatResendErrorMessage(fallbackResponse.error));
+    }
+  }
+
+  throw new Error(formatResendErrorMessage(response.error));
+}
+
 export async function sendVerificationEmail(to: string, token: string) {
   const verificationUrl = buildVerificationUrl(token);
 
-  await resend.emails.send({
-    from: resendFrom,
+  await sendWithResend({
     to,
     subject: "请验证你的邮箱",
     html: `

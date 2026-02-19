@@ -171,6 +171,49 @@ describe("documents actions", () => {
     expect(mockProcessDocument).toHaveBeenCalledWith(NOTE_ID, "user-a");
   });
 
+  it("renameDocument 会保留原后缀并更新 fileName", async () => {
+    const { renameDocument } = await import("./actions");
+
+    mockDocumentFindFirst.mockResolvedValueOnce({
+      id: DOC_ID,
+      userId: "user-a",
+      folderId: null,
+      fileName: "demo.txt",
+      fileType: "txt",
+      fileSize: 10,
+      content: "abc",
+      isNote: false,
+      status: "completed",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    mockUpdateReturning.mockResolvedValueOnce([
+      {
+        id: DOC_ID,
+        userId: "user-a",
+        folderId: null,
+        fileName: "需求文档.txt",
+        fileType: "txt",
+        fileSize: 10,
+        content: "abc",
+        isNote: false,
+        status: "completed",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const result = await renameDocument(DOC_ID, "需求文档");
+
+    expect(result.success).toBe(true);
+
+    const updateArg = mockUpdateSet.mock.calls[0]?.[0] as {
+      fileName: string;
+    };
+    expect(updateArg.fileName).toBe("需求文档.txt");
+  });
+
   it("uploadDocuments 上传后会写入 documents 并解析内容", async () => {
     const { uploadDocuments } = await import("./actions");
 

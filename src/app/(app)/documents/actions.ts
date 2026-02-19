@@ -10,6 +10,7 @@ import { documents, embeddings, folders } from "@/lib/db/schema";
 import { getDocumentTypeByFileName, getParserByFileName } from "@/lib/parsers";
 import { processDocument } from "@/lib/pipeline";
 import {
+  documentFileNameSchema,
   documentIdSchema,
   noteContentSchema,
   noteTitleSchema,
@@ -118,6 +119,72 @@ function collectDescendantFolderIds(
   }
 
   return idsToDelete;
+}
+
+function extractExtension(fileName: string) {
+  const lastDotIndex = fileName.lastIndexOf(".");
+  if (lastDotIndex <= 0 || lastDotIndex === fileName.length - 1) {
+    return "";
+  }
+
+  return fileName.slice(lastDotIndex + 1).toLowerCase();
+}
+
+function normalizeDocumentFileName(rawName: string, target: DocumentRecord) {
+  const normalizedName = rawName.trim();
+  const currentExtension = extractExtension(target.fileName);
+  const nextExtension = extractExtension(normalizedName);
+
+  // 统一把“重命名”约束在文件名层，不允许在这里变更文件类型，避免 fileName 与 fileType 脱节。
+  if (target.isNote) {
+    if (nextExtension && nextExtension !== "md") {
+      return {
+        success: false as const,
+        message: "笔记文件只能使用 .md 后缀",
+      };
+    }
+
+    const nextBaseName = nextExtension
+      ? normalizedName.slice(0, normalizedName.lastIndexOf(".")).trim()
+      : normalizedName;
+    if (!nextBaseName) {
+      return {
+        success: false as const,
+        message: "文件名不能为空",
+      };
+    }
+
+    return {
+      success: true as const,
+      fileName: `${nextBaseName}.md`,
+    };
+  }
+
+  if (!currentExtension) {
+    return {
+      success: true as const,
+      fileName: normalizedName,
+    };
+  }
+
+  if (!nextExtension) {
+    return {
+      success: true as const,
+      fileName: `${normalizedName}.${currentExtension}`,
+    };
+  }
+
+  if (nextExtension !== currentExtension) {
+    return {
+      success: false as const,
+      message: `文件后缀必须保持为 .${currentExtension}`,
+    };
+  }
+
+  return {
+    success: true as const,
+    fileName: normalizedName,
+  };
 }
 
 export async function createFolder(
@@ -429,6 +496,82 @@ export async function createNote(
   return {
     success: true,
     document: insertedDocument,
+  };
+}
+
+export async function renameDocument(
+  id: string,
+  newName: string
+): Promise<DocumentActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    return {
+      success: false,
+      message: "登录状态已失效，请重新登录",
+    };
+  }
+
+  const parsedId = documentIdSchema.safeParse(id);
+  if (!parsedId.success) {
+    return {
+      success: false,
+      message: parsedId.error.issues[0]?.message ?? "文档 ID 非法",
+    };
+  }
+
+  const parsedName = documentFileNameSchema.safeParse(newName);
+  if (!parsedName.success) {
+    return {
+      success: false,
+      message: parsedName.error.issues[0]?.message ?? "文件名不合法",
+    };
+  }
+
+  const targetDocument = await db.query.documents.findFirst({
+    where: and(eq(documents.id, parsedId.data), eq(documents.userId, userId)),
+  });
+
+  if (!targetDocument) {
+    return {
+      success: false,
+      message: "文件不存在或无权限",
+    };
+  }
+
+  const normalizedResult = normalizeDocumentFileName(parsedName.data, targetDocument);
+  if (!normalizedResult.success) {
+    return {
+      success: false,
+      message: normalizedResult.message,
+    };
+  }
+
+  const updatedDocuments = await db
+    .update(documents)
+    .set({
+      fileName: normalizedResult.fileName,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(documents.id, targetDocument.id), eq(documents.userId, userId)))
+    .returning();
+
+  const updatedDocument = updatedDocuments[0];
+  if (!updatedDocument) {
+    return {
+      success: false,
+      message: "文件不存在或无权限",
+    };
+  }
+
+  revalidatePath("/documents");
+  revalidatePath(`/documents/${updatedDocument.id}`);
+  if (updatedDocument.isNote) {
+    revalidatePath(`/documents/${updatedDocument.id}/edit`);
+  }
+
+  return {
+    success: true,
+    document: updatedDocument,
   };
 }
 
