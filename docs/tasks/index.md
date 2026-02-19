@@ -14,13 +14,13 @@
 | [02](./task-02.md) | Drizzle ORM + PostgreSQL + pgvector + 所有 Schema | 01 | ✅ |
 | [03](./task-03.md) | 项目 CLAUDE.md 开发规范 + Vitest 配置 | 01 | ✅ |
 | [04](./task-04.md) | App Layout 侧边栏 + 顶部栏 | 01 | ✅ |
-| [05](./task-05.md) | 首页落地页 | 01 | ⬜ |
+| [05](./task-05.md) | 首页落地页 | 01 | ✅ |
 
 ## Phase 2：认证系统
 
 | Task | 功能 | 依赖 | 状态 |
 |------|------|------|------|
-| [06](./task-06.md) | Better Auth + 邮箱密码注册/登录 | 02, 04 | ⬜ |
+| [06](./task-06.md) | Better Auth + 邮箱密码注册/登录 | 02, 04 | ✅ |
 | [07](./task-07.md) | Resend 邮件验证 | 06 | ⬜ |
 | [08](./task-08.md) | Google OAuth 登录 | 06 | ⬜ |
 | [09](./task-09.md) | 认证中间件（路由保护） | 06 | ⬜ |

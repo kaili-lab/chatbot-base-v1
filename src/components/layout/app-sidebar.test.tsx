@@ -4,6 +4,13 @@ import { render, screen } from "@testing-library/react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 
+vi.mock("@/lib/auth/client", () => ({
+  useSession: () => ({
+    data: null,
+    isPending: false,
+  }),
+}));
+
 vi.mock("next/navigation", () => ({
   usePathname: () => "/chat",
 }));

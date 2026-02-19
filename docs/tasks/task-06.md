@@ -21,8 +21,22 @@
 - 创建 `src/lib/auth/index.ts`，配置 Better Auth 实例
 - 数据库适配器使用 Drizzle
 - 启用 email + password 认证
-- Better Auth 会自动创建 user、session、account、verification 表
 - 创建 API Route：`src/app/api/auth/[...all]/route.ts`
+
+### Better Auth 数据库迁移（必须显式执行，不会自动发生）
+
+Better Auth **不会**在启动时自动建表，必须手动执行迁移。使用 Drizzle 适配器时推荐方式：
+
+```bash
+# 方式一（推荐）：生成 Drizzle schema 文件后走统一的 drizzle 迁移流程
+npx @better-auth/cli generate   # 生成 auth-schema.ts（包含 user/session/account/verification 表）
+pnpm db:generate                # 生成包含 Better Auth 表的迁移文件
+pnpm db:migrate                 # 执行迁移
+```
+
+生成的 `auth-schema.ts` 需要引入到 `drizzle.config.ts` 的 `schema` 字段中，使 drizzle-kit 能感知到 Better Auth 表。
+
+> **为什么不用方式二（`@better-auth/cli migrate`）**：该命令直接执行 SQL 绕过 drizzle，与现有的 drizzle 迁移流程分离，导致迁移历史不一致。
 
 ### Better Auth 客户端配置
 
@@ -75,10 +89,10 @@
 
 ## 完成标志
 
-- [ ] Better Auth 服务端和客户端配置完成
-- [ ] 注册页面和逻辑正常
-- [ ] 登录页面和逻辑正常
-- [ ] 侧边栏用户信息和登出功能接入真实数据
-- [ ] 表单验证正常
-- [ ] 测试通过
-- [ ] `pnpm build` 构建成功
+- [x] Better Auth 服务端和客户端配置完成
+- [x] 注册页面和逻辑正常
+- [x] 登录页面和逻辑正常
+- [x] 侧边栏用户信息和登出功能接入真实数据
+- [x] 表单验证正常
+- [x] 测试通过
+- [x] `pnpm build` 构建成功

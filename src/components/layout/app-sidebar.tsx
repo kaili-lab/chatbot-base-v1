@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Hexagon, MessageSquare, Settings, User } from "lucide-react";
+import { FileText, Hexagon, MessageSquare, Settings } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth/client";
 import {
   Sidebar,
   SidebarCollapseButton,
@@ -23,6 +24,13 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
+  const { data: session, isPending } = useSession();
+  const displayName = isPending
+    ? "加载中..."
+    : session?.user?.name || session?.user?.email || "未登录";
+  const avatarLabel = isPending
+    ? "…"
+    : displayName.trim().charAt(0).toUpperCase() || "?";
 
   return (
     <Sidebar className="relative">
@@ -77,10 +85,10 @@ export function AppSidebar() {
           )}
         >
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-medium text-white">
-            A
+            {avatarLabel}
           </div>
           {!collapsed && (
-            <span className="truncate text-sm font-medium">Alex Johnson</span>
+            <span className="truncate text-sm font-medium">{displayName}</span>
           )}
         </div>
       </SidebarFooter>

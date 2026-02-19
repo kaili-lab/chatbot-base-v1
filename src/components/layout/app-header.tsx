@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { LogOut, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -8,8 +10,24 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { authClient } from "@/lib/auth/client";
 
 export function AppHeader() {
+  const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await authClient.signOut();
+      router.push("/login");
+      router.refresh();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 lg:px-6">
       {/* 左侧：移动端菜单 + 面包屑 */}
@@ -32,7 +50,8 @@ export function AppHeader() {
           variant="ghost"
           size="icon"
           aria-label="退出登录"
-          onClick={() => {}}
+          onClick={handleSignOut}
+          disabled={isSigningOut}
         >
           <LogOut className="size-4" />
         </Button>
