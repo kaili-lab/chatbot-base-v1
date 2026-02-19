@@ -27,7 +27,7 @@ export const session = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    token: text("token").notNull(),
+    token: text("token").notNull().unique(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     ipAddress: text("ip_address"),
     userAgent: text("user_agent"),
@@ -40,7 +40,6 @@ export const session = pgTable(
   },
   (table) => ({
     userIdIdx: index("session_user_id_idx").on(table.userId),
-    tokenIdx: index("session_token_idx").on(table.token),
   })
 );
 
