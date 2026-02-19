@@ -69,10 +69,19 @@ src/
 
 ## 验证标准
 
-### 预期行为
+### 配置完整性检查（Tailwind v4 + shadcn/ui 初始化容易不完整，需逐项确认）
+
+- [ ] `src/app/globals.css` 包含 `@custom-variant dark` 声明（Tailwind v4 class-based 暗色模式必须）
+- [ ] `globals.css` 的 `:root` 中定义了完整的 shadcn/ui 颜色变量（`--primary`、`--secondary`、`--muted`、`--accent`、`--border`、`--input`、`--ring`、`--card`、`--popover` 及各自的 `-foreground`）
+- [ ] `globals.css` 包含 `.dark` 选择器并定义了对应暗色变量
+- [ ] `globals.css` 的 `@theme inline` 中将所有颜色变量映射为 `--color-*` 格式
+- [ ] `components.json` 中 `cssVariables: true`
+- [ ] `src/lib/utils.ts` 存在且包含 `cn()` 函数
+
+### 功能验证
 
 - `pnpm dev` 能正常启动，浏览器访问 `http://localhost:3000` 看到页面
-- shadcn/ui 组件能正常渲染（在首页放一个 Button 测试）
+- shadcn/ui Button **有背景色**（如果是透明的，说明 CSS 变量未正确定义）
 - 主题切换功能正常（亮色/暗色/跟随系统）
 - Sonner toast 能正常弹出
 - `pnpm build` 构建成功，无 TypeScript 错误
@@ -80,7 +89,7 @@ src/
 ## 完成标志
 
 - [x] 项目初始化完成
-- [x] shadcn/ui 配置完成，组件可用
+- [x] shadcn/ui 配置完成，组件样式正常（非透明）
 - [x] next-themes 主题切换正常
 - [x] Sonner 通知正常
 - [x] 目录结构符合规范

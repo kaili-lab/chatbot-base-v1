@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git *)",
+      "Bash(mkdir *)",
+      "Bash(rm *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(chmod *)",
+      "Bash(touch *)",
+      "Bash(docker *)",
+      "Bash(docker-compose *)",
+      "Bash(psql *)",
+      "Bash(curl *)",
+      "Bash(which *)",
+      "Bash(env *)",
+      "Bash(echo *)",
+      "Bash(gh *)",
+      "Read(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "Bash(pnpm test)",
+      "Bash(pnpm build)",
+      "Bash(pnpm dev)",
+      "WebSearch"
+    ]
+  }
+}
