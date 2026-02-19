@@ -7,7 +7,7 @@
 
 ## 需求描述
 
-配置数据库连接和 ORM，创建 PRD 中定义的所有业务表 Schema。Better Auth 的表由 Better Auth 自动管理，不需要手动创建。
+配置数据库连接和 ORM，创建 PRD 中定义的所有业务表 Schema。Better Auth 的表（user/session/account/verification）由 Better Auth 定义 schema，但**不会自动建表**，需要在 Task 06 中通过 `npx @better-auth/cli generate` 生成 Drizzle schema 后显式执行迁移。本 task 只创建业务表，不创建 Better Auth 表。
 
 ## 实现要点
 

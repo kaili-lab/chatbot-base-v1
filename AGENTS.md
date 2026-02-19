@@ -39,6 +39,11 @@
 
 ### 常见问题处理（重要）
 
+- **Better Auth 不会自动建表**：配置好 Better Auth 实例后，数据库中的 user/session/account/verification 表不会自动创建。必须选择以下任一方式显式建表：
+  - 方式一（推荐）：手动在 `src/lib/db/schema/auth.ts` 中写 Drizzle schema，然后 `pnpm db:generate && pnpm db:migrate`
+  - 方式二：`npx @better-auth/cli generate` 生成 schema 文件，再跑 drizzle 迁移
+  - 两种方式都需要将 auth schema 导入到 `src/lib/db/schema/index.ts` 中
+
 - drizzle-kit v0.3x 使用 `dialect: "postgresql"` 与 `dbCredentials.url`，不要使用旧的 `driver/connectionString`
 - 使用 pgvector 时确保 `drizzle-orm` 版本支持 `vector` 类型（建议 >= 0.45.x）
 - `pnpm db:migrate` 不会自动读取 `.env.local` 时，需显式注入 `DATABASE_URL`
