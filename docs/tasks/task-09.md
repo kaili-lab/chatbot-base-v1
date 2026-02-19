@@ -1,9 +1,11 @@
-# Task 09: 认证中间件（路由保护）
+# Task 09: 路由保护（Proxy）
+
+> 基于 Next.js 16.1.6 / Better Auth 1.x。Next.js 16 用 `proxy.ts`（导出 `proxy`）替代了旧的 `middleware.ts`。
 
 ## 依赖
 
 - 前置 task：Task 06（Better Auth + 注册登录）
-- 相关文件：`src/middleware.ts`
+- 相关文件：`src/proxy.ts`
 
 ## 需求描述
 
@@ -11,9 +13,9 @@
 
 ## 实现要点
 
-### Next.js Middleware
+### Next.js 16 Proxy（非 middleware）
 
-- 创建 `src/middleware.ts`
+- 创建 `src/proxy.ts`，导出 `proxy` 函数（不是 `middleware`）
 - 使用 Better Auth 的 session 检查机制
 
 ### 路由保护规则

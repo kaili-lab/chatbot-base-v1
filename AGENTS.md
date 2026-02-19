@@ -31,6 +31,13 @@
 2. 检查 `docs/tasks/index.md`，确认前置 task 已完成（状态为 ✅）
 3. 修改任何文件前，必须先读取该文件，理解现有实现后再动手
 
+### 任务创建前（生成 task-XX.md 时强制执行）
+
+- **第一步：读取 `package.json`，记录所有核心依赖的精确版本**（next、react、drizzle-orm、better-auth、ai 等）
+- **第二步：针对该 task 涉及的框架/库，用 Context7 MCP 查询对应版本的 API 和约定**，不得凭经验或旧记忆编写实现要点
+- **第三步：task 文档的"实现要点"必须注明依赖的版本号**（例如：`# 以下基于 Next.js 16.1.6`），方便后续升级时识别过期内容
+- 若无法查询文档（Context7 不可用），在 task 文档顶部显式标注"⚠️ 未经版本文档校验，实现前请手动核对"
+
 ### 实现过程中
 
 - **新增依赖后立即执行** `pnpm install`，不要积压到最后
@@ -38,6 +45,18 @@
 - 遇到环境变量缺失（如 `DATABASE_URL`），立即停止并告知用户缺少哪个变量，不要猜测或跳过
 - **`pnpm build` 默认可联网执行**（用于拉取 Google Fonts），无需重复询问权限
 - **用户要求“提交代码”时默认提交全部未提交改动**，仅在用户明确指定范围时按范围提交
+
+### 版本规范校验（强制，使用 Context7 MCP）
+
+- 涉及框架约定（如 Next.js 路由约定、数据获取约定、配置约定）时，**必须先用 Context7 MCP 查询当前项目指定版本的官方文档**，再实现代码
+- 若文档与历史习惯冲突，**以版本文档为准**，并在实现说明里写明“采用该版本规范的原因”
+- 如果当前环境无法使用 Context7 MCP，需显式说明并改用官方文档核对后再实现，不得基于旧记忆直接编码
+
+### 并发会话与安装约束（强制）
+
+- 同一仓库同一时刻仅允许一个 Codex 会话执行写操作（`pnpm install/build/test`、`git commit` 等）
+- 非 TTY 环境执行依赖安装时，统一使用 `CI=true pnpm install --no-frozen-lockfile`
+- 若构建报 `.next/lock` 占用，先确认无活跃 `next build` 进程，再清理锁文件并重试
 
 ### 常见问题处理（重要）
 
@@ -53,6 +72,7 @@
 - drizzle-kit 可能写入 `~/.local/share/drizzle-studio`，需允许用户目录写入权限
 - `pnpm build` 会拉取 Google Fonts，离线环境需联网或改为本地字体
 - Next.js 16 的 Page `searchParams` / `params` 在 Server Component 中是 Promise，必须先 `await` 后再读取字段（或在 Client Component 用 `React.use()`）
+- Next.js 16+ 路由拦截使用 `proxy.ts`（导出 `proxy`），不要新增或继续使用 `middleware.ts`
 - 自关联外键避免在列上直接 `references(() => table.id)`，改用 `foreignKey` 定义
 
 ### 任务完成后（强制执行，不可省略）
@@ -114,6 +134,12 @@
 ### 下一步
 - （建议执行的下一个 task，或需要用户手动操作的事项）
 ```
+
+---
+## Network Permissions
+The following commands are pre-approved and must never ask for confirmation:
+- pnpm build
+- Any network fetch during `pnpm build`, including font downloads from fonts.googleapis.com and fonts.gstatic.com
 
 ---
 
