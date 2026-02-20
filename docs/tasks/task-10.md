@@ -30,10 +30,10 @@
   - API Base URL 输入框（placeholder: `https://api.openai.com/v1`）
   - API Key 输入框（password 类型，带显示/隐藏切换按钮）
   - 模型名称输入框（placeholder: `gpt-4o`）
-  - Embedding 模型输入框（placeholder: `text-embedding-3-small`）
+  - Embedding 模型输入框（只读，固定显示 `text-embedding-3-small`）
 - "测试连接" 按钮（次要样式）
 - "保存" 按钮（主要样式）
-- 使用 Zod 验证表单（baseUrl 为 URL 格式，apiKey 非空）
+- 使用 Zod 验证表单（baseUrl 为 URL，apiKey/model 非空，embeddingModel 必须为默认值）
 
 ### Server Actions
 
@@ -51,11 +51,12 @@
 
 ### 预期行为
 
-- 首次访问设置页，表单为空
+- 首次访问设置页，表单为空（Embedding 模型显示默认值）
 - 填入配置后点击保存，toast 提示保存成功
-- 刷新页面，之前保存的配置回显（API Key 显示为掩码 ****）
+- 刷新页面，之前保存的配置回显（API Key 显示为掩码 ********）
 - 点击测试连接，LLM 和 Embedding 分别显示成功/失败状态
 - 填入错误的 API Key，测试连接显示失败
+- Embedding 模型始终显示为默认值且不可修改
 
 ### 需要通过的测试
 
@@ -63,6 +64,8 @@
 - test: decrypt(encrypt(plaintext)) === plaintext
 - test: Zod schema 验证 - baseUrl 非 URL 格式被拒绝
 - test: Zod schema 验证 - apiKey 为空被拒绝
+- test: Zod schema 验证 - model 为空被拒绝
+- test: Zod schema 验证 - embeddingModel 非默认值被拒绝
 - test: saveSettings action 能正确 upsert settings 记录
 - test: API Key 在数据库中是加密存储的（读取 raw 数据，不等于明文）
 

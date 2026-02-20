@@ -29,6 +29,8 @@
 - 新建笔记：点击 "New Note" 弹出弹窗，用户可选择保存目录（未选择则提示"文件会保存在根目录"，已选择则不提示），确认后进入 Markdown 编辑器页面（使用 @uiw/react-md-editor，左右分栏编辑+预览）
 - 删除文件/文件夹：删除文件时同时删除关联的文本块和向量数据，删除文件夹时级联删除子内容
 - 查看文件内容：展示提取后的文本内容（不存储原始文件），显示元信息（日期、大小）和处理状态
+- 文件详情路由校验：documentId 非法直接 404，避免触发数据库类型错误
+- Markdown 渲染安全：图片链接仅允许 http/https/data/blob 或站内绝对路径，非法图片渲染为占位文本并阻止请求
 - 处理状态显示：上传中 → 解析中 → 已完成 / 失败
 
 #### 模块三：文档处理 Pipeline
@@ -40,7 +42,7 @@
 
 #### 模块三-B：LLM 设置
 
-- LLM 配置表单：API Base URL、API Key（密码输入框，带显示/隐藏切换）、模型名称、Embedding 模型名称
+- LLM 配置表单：API Base URL、API Key（密码输入框，带显示/隐藏切换）、模型名称、Embedding 模型（固定显示 `text-embedding-3-small`，暂不开放修改）
 - API Key 加密存储：服务端加密后存入数据库，前端不展示明文
 - 测试连接按钮：用户填写配置后，点击按钮验证 LLM API 和 Embedding API 是否可用，返回成功/失败提示
 
@@ -48,8 +50,13 @@
 
 - 对话列表：左侧展示历史对话列表（标题 + 日期），支持新建对话
 - 对话星标：可收藏重要对话，星标对话置顶显示
-- 对话管理：右键或 "..." 菜单支持重命名、删除对话
+- 对话管理："..." 菜单支持重命名、删除对话；顶部删除按钮支持批量删除未收藏对话（需确认）
 - 对话界面：用户输入问题，流式输出回答
+- 对话区域固定高度：对话列表与消息列表分别内部滚动
+- 对话列表时间显示创建时间，不随消息更新
+- Markdown 渲染：AI 回复支持 Markdown（标题/列表/代码块等）
+- 来源即时展示：回复完成后显示来源，无需整页刷新
+- 来源说明：未命中知识库时明确提示“未检索到知识库”
 - RAG 检索：将用户问题向量化，从 pgvector 中进行相似度检索
 - LLM 回答生成：将检索到的上下文 + 用户问题一起发送给 LLM
 - 来源标注：回答中标明是基于知识库还是通用问答
@@ -128,7 +135,7 @@ embeddings
 ├── documentId (关联 documents)
 ├── userId (冗余字段，加速检索时的权限过滤)
 ├── content (文本块内容)
-├── vector (vector 类型，维度取决于 Embedding 模型)
+├── vector (vector 类型，当前固定为 1536 维)
 ├── chunkIndex (块在原文中的顺序)
 ├── metadata (JSONB，存储起止位置等信息)
 ├── createdAt
@@ -157,8 +164,8 @@ settings
 ├── llmBaseUrl
 ├── llmApiKey (加密存储)
 ├── llmModel
-├── embeddingModel
-├── embeddingDimension (integer，向量维度，由 Embedding 模型决定)
+├── embeddingModel (当前固定为 text-embedding-3-small)
+├── embeddingDimension (integer，当前固定为 1536)
 ├── createdAt
 └── updatedAt
 ```
@@ -197,9 +204,9 @@ Markdown 标题（# ## ###）→ 空行（\n\n）→ 换行（\n）→ 句号（
   ↓
 在 pgvector 中执行相似度搜索（cosine similarity）
 过滤条件：userId = 当前用户
-返回 Top-K 个最相关的文本块（K=5）
+返回 Top-K 个最相关的文本块（K=10）
   ↓
-判断检索结果的相关性（基于相似度阈值）
+判断检索结果的相关性（相似度阈值随问题长度动态调整，短问题适度降低）
   ↓
 ├─ 相似度 >= 阈值 → 将检索到的文本块作为上下文，连同问题发给 LLM，回答标注"基于知识库"
 └─ 相似度 < 阈值 → 不注入上下文，直接将问题发给 LLM，回答标注"通用回答"
@@ -211,7 +218,7 @@ Markdown 标题（# ## ###）→ 空行（\n\n）→ 换行（\n）→ 句号（
 // 预留接口，方便后续添加 PDF、Word 等解析器
 interface DocumentParser {
   supportedTypes: string[];
-  parse(file: Buffer, fileName: string): Promise<string>;
+  parse(content: string, fileName: string): Promise<string>;
 }
 
 // MVP 实现

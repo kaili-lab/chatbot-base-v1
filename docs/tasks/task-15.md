@@ -22,12 +22,14 @@
 - 文件名下方：日期 + 文件大小（如 "2024-03-01 • 2k"）
 - 右上角：处理状态 Badge（processing 黄色 / completed 绿色 "Indexed" / failed 红色）
 - 主内容区：文件的完整文本内容，使用等宽字体或 Markdown 渲染（如果是 .md 文件）
+- Markdown 安全渲染：图片链接仅允许 http/https/data/blob 或站内绝对路径，非法图片显示占位文本并阻止请求
 - 内容区可滚动
 
 ### 路由
 
 - `/(app)/documents/[id]/page.tsx`
 - Server Component，通过 documentId + userId 查询
+- documentId 必须是 UUID，非法参数直接 404
 
 ### 数据获取
 

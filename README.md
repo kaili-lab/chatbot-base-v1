@@ -1,38 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chatbot Base
 
-## Getting Started
+基于 RAG 的通用知识库 Chatbot，支持知识库管理与对话问答。
 
-First, run the development server:
+## 技术栈
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Next.js 16 + React 19 + TypeScript
+- shadcn/ui + Tailwind CSS
+- Drizzle ORM + PostgreSQL + pgvector
+- Better Auth
+- Vercel AI SDK
 
-codex -m gpt-5.3-codex
-```
+## 本地开发
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. 安装依赖
+   ```bash
+   pnpm install
+   ```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. 配置环境变量
+   ```bash
+   cp .env.example .env.local
+   ```
+   按需填写 `.env.local` 中的值。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. 生成并执行数据库迁移
+   ```bash
+   pnpm db:generate
+   pnpm db:migrate
+   ```
 
-## Learn More
+4. 启动开发服务器
+   ```bash
+   pnpm dev
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+访问 `http://localhost:3000`。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 环境变量
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+必需变量（生产与开发）：
 
-## Deploy on Vercel
+- `DATABASE_URL`
+- `BETTER_AUTH_URL`
+- `BETTER_AUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `RESEND_API_KEY`
+- `RESEND_FROM`
+- `ENCRYPTION_KEY`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+可选（本地测试 LLM 配置时使用）：
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `TEST_LLM_BASE_URL`
+- `TEST_LLM_API_KEY`
+- `TEST_LLM_MODEL`
+- `TEST_EMBEDDING_MODEL`
+
+## 部署（Vercel）
+
+1. 推送代码到 Git 平台并在 Vercel 创建项目。
+2. 在 Vercel 项目中配置上述环境变量。
+3. 设置 `DATABASE_URL` 指向生产数据库。
+4. 部署后访问项目地址完成验证。

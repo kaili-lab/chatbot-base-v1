@@ -11,11 +11,11 @@ export default function AppLayout({
   return (
     <SidebarProvider>
       <AppShellProvider>
-        <div className="flex min-h-screen w-full bg-background">
+        <div className="flex h-dvh w-full overflow-hidden bg-background">
           <AppSidebar />
           <SidebarInset>
             <AppHeader />
-            <main className="flex-1 overflow-hidden">{children}</main>
+            <main className="flex-1 min-h-0 overflow-hidden">{children}</main>
           </SidebarInset>
         </div>
       </AppShellProvider>

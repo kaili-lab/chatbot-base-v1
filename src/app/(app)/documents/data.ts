@@ -7,6 +7,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { documents, embeddings, folders } from "@/lib/db/schema";
+import { documentIdSchema } from "@/lib/validations/document";
 
 export async function requireDocumentsUserId() {
   const session = await auth.api.getSession({
@@ -55,8 +56,15 @@ export async function getDocumentsWorkspaceData(userId: string) {
 }
 
 export async function getDocumentDetailById(documentId: string, userId: string) {
+  const parsedId = documentIdSchema.safeParse(documentId);
+
+  // WHAT: 先校验 UUID；WHY: 避免非法路由参数触发数据库 UUID 解析错误。
+  if (!parsedId.success) {
+    notFound();
+  }
+
   const targetDocument = await db.query.documents.findFirst({
-    where: and(eq(documents.id, documentId), eq(documents.userId, userId)),
+    where: and(eq(documents.id, parsedId.data), eq(documents.userId, userId)),
   });
 
   if (!targetDocument) {

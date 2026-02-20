@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, FileText, NotebookPen, Trash2 } from "lucide-react";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 import { deleteDocument } from "@/app/(app)/documents/actions";
 import { DocumentStatusBadge } from "@/components/documents/document-status-badge";
 import type { DocumentDetail } from "@/components/documents/types";
+import { SafeMarkdownPreview } from "@/components/markdown/safe-markdown-preview";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,11 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const MarkdownPreview = dynamic(
-  async () => (await import("@uiw/react-md-editor")).default.Markdown,
-  { ssr: false }
-);
 
 function formatFileSize(fileSize: number) {
   if (fileSize < 1024) {
@@ -119,15 +114,7 @@ export function DocumentDetailView({ document }: DocumentDetailViewProps) {
 
       <div className="min-h-[360px] max-h-[calc(100vh-220px)] overflow-y-auto rounded-md border bg-white p-4 dark:bg-background">
         {shouldRenderMarkdown ? (
-          <div data-color-mode="light" className="wmde-markdown-var">
-            <MarkdownPreview
-              source={document.content}
-              style={{
-                backgroundColor: "transparent",
-                color: "inherit",
-              }}
-            />
-          </div>
+          <SafeMarkdownPreview source={document.content} />
         ) : (
           <pre className="whitespace-pre-wrap font-mono text-sm leading-7">{document.content}</pre>
         )}

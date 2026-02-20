@@ -14,7 +14,7 @@
 ### RAG 检索逻辑
 
 - 创建 `src/lib/rag/retriever.ts`
-- `retrieveRelevantChunks(query, userId, topK = 5, threshold = 0.7)`:
+- `retrieveRelevantChunks(query, userId, topK = 10, threshold = 0.7)`:
   1. 读取用户的 Embedding 配置
   2. 调用 Embedding API 将 query 转为向量
   3. 在 pgvector 中执行 cosine similarity 搜索（`<=>` 操作符）
@@ -58,12 +58,19 @@ LIMIT $topK
 - AI 回复气泡下方：
   - 如果有来源 → 显示可折叠的 "X Sources referenced" 区域
   - 折叠内容：每个引用源显示文档图标 + 文件名
+  - 引用列表按 documentId 去重，避免同一文档多次展示
   - 点击文件名跳转到对应文件详情页（`/documents/[documentId]`）
   - 如果无来源 → 不显示来源区域（或显示 "通用回答" 标签）
+
+### Markdown 渲染安全
+
+- AI 回复的 Markdown 渲染需过滤图片链接，仅允许 http/https/data/blob 或站内绝对路径
+- 非法图片链接渲染为占位文本，避免触发错误路由或资源请求
 
 ### 相似度阈值
 
 - 默认阈值 0.7，可在代码中配置为常量
+- 根据问题长度动态下调阈值（短问题降阈值以提升召回）
 - 低于阈值的结果视为不相关，不注入上下文
 
 ## 验证标准
@@ -90,9 +97,9 @@ LIMIT $topK
 
 ## 完成标志
 
-- [ ] RAG 检索器实现（pgvector cosine similarity）
-- [ ] 上下文注入到 LLM prompt
-- [ ] 来源标注和持久化
-- [ ] 文档引用 UI（折叠区域 + 文件名链接）
-- [ ] 检索测试通过
-- [ ] `pnpm build` 构建成功
+- [x] RAG 检索器实现（pgvector cosine similarity）
+- [x] 上下文注入到 LLM prompt
+- [x] 来源标注和持久化
+- [x] 文档引用 UI（折叠区域 + 文件名链接）
+- [x] 检索测试通过
+- [x] `pnpm build` 构建成功

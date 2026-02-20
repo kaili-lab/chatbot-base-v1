@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { DEFAULT_EMBEDDING_MODEL } from "@/lib/llm/constants";
+import type { SettingsInput } from "@/lib/validations/settings";
 
 import { saveSettings, testConnection } from "./actions";
 import { API_KEY_MASK, type StoredSettings } from "./constants";
@@ -17,12 +18,7 @@ type SettingsFormProps = {
   hasStoredApiKey: boolean;
 };
 
-type FormValues = {
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  embeddingModel: string;
-};
+type FormValues = SettingsInput;
 
 type FieldErrors = Partial<Record<keyof FormValues, string>>;
 

@@ -45,9 +45,10 @@ interface Chunk {
 ### Embedding 生成
 
 - 创建 `src/lib/pipeline/embedder.ts`
-- 从 settings 表读取当前用户的 Embedding 配置（baseUrl, apiKey, embeddingModel）
+- 从 settings 表读取当前用户的 Embedding 配置（baseUrl, apiKey；embeddingModel 为空时回退默认值 `text-embedding-3-small`）
 - 使用 Vercel AI SDK 的 `embed` 或 `embedMany` 函数
 - 批量处理：一次性将所有 chunk 发送（注意 API 的 batch 限制，必要时分批）
+- 当前 Embedding 模型固定为默认值，对应向量维度固定为 1536
 
 ### Pipeline 编排
 
@@ -68,7 +69,7 @@ interface Chunk {
 
 ### 错误处理
 
-- Embedding API 不可用（用户未配置或配置错误）→ status = failed，toast 提示用户检查 LLM 设置
+- Embedding API 不可用（未配置 baseUrl/apiKey 或配置错误）→ status = failed，toast 提示用户检查 LLM 设置
 - 分块过程出错 → status = failed，记录错误信息
 
 ## 验证标准

@@ -19,7 +19,7 @@
 ### Chat 页面布局
 
 - 左侧对话列表面板（窄列，可折叠）：
-  - 顶部："+ New Chat" 按钮 + 删除按钮（垃圾桶图标，删除当前选中的对话）
+  - 顶部："+ New Chat" 按钮 + 删除按钮（垃圾桶图标，批量删除未收藏对话，需确认）
   - 列表项：对话标题 + 日期 + 星标图标 + "..." 更多菜单
   - 星标对话置顶显示
   - 当前选中的对话高亮
@@ -53,6 +53,7 @@
 
 - `createConversation(userId)`: 创建新对话
 - `deleteConversation(conversationId, userId)`: 删除对话 + 关联 messages
+- `deleteUnstarredConversations(userId)`: 删除全部未收藏对话（保留星标）
 - `renameConversation(conversationId, userId, newTitle)`: 重命名
 - `toggleStar(conversationId, userId)`: 切换星标状态
 
@@ -64,6 +65,7 @@
 - 点击 New Chat 创建新对话
 - 点击星标图标切换收藏状态，星标对话置顶
 - 点击 "..." 菜单能重命名和删除对话
+- 点击顶部删除按钮，确认后删除全部未收藏对话，星标对话保留
 - 删除对话后从列表消失
 - 点击不同对话，URL 中的 id 参数变化
 
@@ -72,15 +74,17 @@
 - test: createConversation - 创建对话，title 默认为 "New Chat"
 - test: toggleStar - starred 在 true/false 间切换
 - test: deleteConversation - 对话和关联的 messages 全部删除
+- test: deleteUnstarredConversations - 未收藏对话批量删除，星标保留
 - test: 对话列表排序 - starred 对话在前，非 starred 按时间降序
 - test: 数据隔离 - 用户 A 看不到用户 B 的对话
 
 ## 完成标志
 
-- [ ] 对话列表 UI
-- [ ] 新建对话功能
-- [ ] 星标切换和置顶排序
-- [ ] 更多菜单（重命名、删除）
-- [ ] Server Actions 全部实现
-- [ ] 测试通过
-- [ ] `pnpm build` 构建成功
+- [x] 对话列表 UI
+- [x] 新建对话功能
+- [x] 星标切换和置顶排序
+- [x] 更多菜单（重命名、删除）
+- [x] 顶部批量删除未收藏对话
+- [x] Server Actions 全部实现
+- [x] 测试通过
+- [x] `pnpm build` 构建成功

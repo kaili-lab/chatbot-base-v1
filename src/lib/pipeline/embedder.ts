@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { settings } from "@/lib/db/schema";
-import { DEFAULT_EMBEDDING_DIMENSION } from "@/lib/llm/constants";
+import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL } from "@/lib/llm/constants";
 
 const DEFAULT_EMBEDDING_BATCH_SIZE = 20;
 
@@ -26,9 +26,11 @@ export async function generateEmbeddings(
     },
   });
 
-  if (!userSettings?.llmBaseUrl || !userSettings.llmApiKey || !userSettings.embeddingModel) {
+  if (!userSettings?.llmBaseUrl || !userSettings.llmApiKey) {
     throw new Error("请先在设置中配置 LLM API");
   }
+
+  const embeddingModel = userSettings.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
 
   const openai = createOpenAI({
     baseURL: userSettings.llmBaseUrl,
@@ -41,7 +43,7 @@ export async function generateEmbeddings(
   for (let index = 0; index < values.length; index += DEFAULT_EMBEDDING_BATCH_SIZE) {
     const batch = values.slice(index, index + DEFAULT_EMBEDDING_BATCH_SIZE);
     const result = await embedMany({
-      model: openai.textEmbeddingModel(userSettings.embeddingModel),
+      model: openai.textEmbeddingModel(embeddingModel),
       values: batch,
     });
 
