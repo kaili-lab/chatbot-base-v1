@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
@@ -58,6 +58,10 @@ type UploadDocumentsResult = {
   success: boolean;
   message?: string;
   uploadedCount?: number;
+  failedFiles?: Array<{
+    fileName: string;
+    reason: string;
+  }>;
 };
 
 async function getCurrentUserId() {
@@ -184,6 +188,34 @@ function normalizeDocumentFileName(rawName: string, target: DocumentRecord) {
   return {
     success: true as const,
     fileName: normalizedName,
+  };
+}
+
+function buildNoteFileName(title: string) {
+  const trimmed = title.trim();
+  const lower = trimmed.toLowerCase();
+  const baseName = lower.endsWith(".md") ? trimmed.slice(0, -3).trim() : trimmed;
+
+  if (!baseName) {
+    return {
+      success: false as const,
+      message: "笔记标题不能为空",
+    };
+  }
+
+  const fileName = `${baseName}.md`;
+  const parsed = documentFileNameSchema.safeParse(fileName);
+  if (!parsed.success) {
+    return {
+      success: false as const,
+      message: parsed.error.issues[0]?.message ?? "文件名不合法",
+    };
+  }
+
+  return {
+    success: true as const,
+    baseName,
+    fileName,
   };
 }
 
@@ -348,14 +380,16 @@ export async function uploadDocuments(
   }
 
   let uploadedCount = 0;
+  const failedFiles: UploadDocumentsResult["failedFiles"] = [];
 
   for (const file of files) {
     const fileType = getDocumentTypeByFileName(file.name);
     if (!fileType) {
-      return {
-        success: false,
-        message: `不支持的文件格式：${file.name}`,
-      };
+      failedFiles.push({
+        fileName: file.name,
+        reason: "不支持的文件格式",
+      });
+      continue;
     }
 
     const insertedDocuments = await db
@@ -381,36 +415,22 @@ export async function uploadDocuments(
       const parsedContent = await parser.parse(rawContent, file.name);
       const fileSize = Buffer.byteLength(parsedContent, "utf8");
 
-      await db
-        .update(documents)
-        .set({
-          content: parsedContent,
-          fileSize,
-          status: "processing",
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(documents.id, insertedDocument.id),
-            eq(documents.userId, userId)
-          )
-        );
-
-      await processDocument(insertedDocument.id, userId);
+      await processDocument(insertedDocument.id, userId, {
+        content: parsedContent,
+        fileSize,
+        markFailedOnError: false,
+      });
       uploadedCount += 1;
-    } catch {
+    } catch (error) {
+      await db.delete(embeddings).where(eq(embeddings.documentId, insertedDocument.id));
       await db
-        .update(documents)
-        .set({
-          status: "failed",
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(documents.id, insertedDocument.id),
-            eq(documents.userId, userId)
-          )
-        );
+        .delete(documents)
+        .where(and(eq(documents.id, insertedDocument.id), eq(documents.userId, userId)));
+      failedFiles.push({
+        fileName: file.name,
+        reason:
+          error instanceof Error ? error.message : "文件处理失败，请检查 LLM 设置",
+      });
     }
   }
 
@@ -419,7 +439,8 @@ export async function uploadDocuments(
   if (uploadedCount === 0) {
     return {
       success: false,
-      message: "文件解析失败，请检查 LLM 设置后重试",
+      message: "文件上传失败",
+      failedFiles,
     };
   }
 
@@ -427,6 +448,7 @@ export async function uploadDocuments(
     success: true,
     uploadedCount,
     message: `已上传 ${uploadedCount} 个文件`,
+    failedFiles,
   };
 }
 
@@ -471,15 +493,36 @@ export async function createNote(
     }
   }
 
-  const fileName = `${parsedTitle.data}.md`;
-  const content = `# ${parsedTitle.data}\n\n`;
+  const fileNameResult = buildNoteFileName(parsedTitle.data);
+  if (!fileNameResult.success) {
+    return {
+      success: false,
+      message: fileNameResult.message,
+    };
+  }
+
+  const existingDocument = await db.query.documents.findFirst({
+    where: and(eq(documents.userId, userId), eq(documents.fileName, fileNameResult.fileName)),
+    columns: {
+      id: true,
+    },
+  });
+
+  if (existingDocument) {
+    return {
+      success: false,
+      message: "同名文件已存在，请更换标题",
+    };
+  }
+
+  const content = `# ${fileNameResult.baseName}\n\n`;
 
   const insertedDocuments = await db
     .insert(documents)
     .values({
       userId,
       folderId: safeFolderId,
-      fileName,
+      fileName: fileNameResult.fileName,
       fileType: "md",
       fileSize: Buffer.byteLength(content, "utf8"),
       content,
@@ -543,6 +586,24 @@ export async function renameDocument(
     return {
       success: false,
       message: normalizedResult.message,
+    };
+  }
+
+  const existingDocument = await db.query.documents.findFirst({
+    where: and(
+      eq(documents.userId, userId),
+      eq(documents.fileName, normalizedResult.fileName),
+      ne(documents.id, targetDocument.id)
+    ),
+    columns: {
+      id: true,
+    },
+  });
+
+  if (existingDocument) {
+    return {
+      success: false,
+      message: "同名文件已存在，请更换名称",
     };
   }
 
@@ -620,30 +681,16 @@ export async function updateNoteContent(
 
   const fileSize = Buffer.byteLength(parsedContent.data, "utf8");
 
-  const updatedDocuments = await db
-    .update(documents)
-    .set({
+  try {
+    await processDocument(targetDocument.id, userId, {
       content: parsedContent.data,
       fileSize,
-      status: "processing",
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(documents.id, targetDocument.id),
-        eq(documents.userId, userId),
-        eq(documents.isNote, true)
-      )
-    )
-    .returning();
-
-  try {
-    await processDocument(targetDocument.id, userId);
+      markFailedOnError: false,
+    });
   } catch {
     return {
       success: false,
-      message: "笔记已保存，但向量化失败，请检查 LLM 设置",
-      document: updatedDocuments[0],
+      message: "笔记保存失败，向量化未完成，请检查 LLM 设置",
     };
   }
 
@@ -652,7 +699,13 @@ export async function updateNoteContent(
 
   return {
     success: true,
-    document: updatedDocuments[0],
+    document: {
+      ...targetDocument,
+      content: parsedContent.data,
+      fileSize,
+      status: "completed",
+      updatedAt: new Date(),
+    },
   };
 }
 

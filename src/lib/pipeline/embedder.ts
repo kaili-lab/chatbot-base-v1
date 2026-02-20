@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { decrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { settings } from "@/lib/db/schema";
+import { DEFAULT_EMBEDDING_DIMENSION } from "@/lib/llm/constants";
 
 const DEFAULT_EMBEDDING_BATCH_SIZE = 20;
 
@@ -43,6 +44,12 @@ export async function generateEmbeddings(
       model: openai.textEmbeddingModel(userSettings.embeddingModel),
       values: batch,
     });
+
+    for (const vector of result.embeddings) {
+      if (vector.length !== DEFAULT_EMBEDDING_DIMENSION) {
+        throw new Error("Embedding 维度不匹配，请确认模型配置");
+      }
+    }
 
     vectors.push(...result.embeddings);
   }

@@ -10,6 +10,7 @@ import { auth } from "@/lib/auth";
 import { decrypt, encrypt } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { settings } from "@/lib/db/schema";
+import { DEFAULT_EMBEDDING_DIMENSION, DEFAULT_EMBEDDING_MODEL } from "@/lib/llm/constants";
 import {
   settingsSchema,
   type SettingsFieldErrors,
@@ -129,6 +130,7 @@ export async function saveSettings(input: SettingsInput): Promise<ActionResult> 
         llmApiKey: encryptedApiKey,
         llmModel: parsed.data.model,
         embeddingModel: parsed.data.embeddingModel,
+        embeddingDimension: DEFAULT_EMBEDDING_DIMENSION,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -138,6 +140,7 @@ export async function saveSettings(input: SettingsInput): Promise<ActionResult> 
           llmApiKey: encryptedApiKey,
           llmModel: parsed.data.model,
           embeddingModel: parsed.data.embeddingModel,
+          embeddingDimension: DEFAULT_EMBEDDING_DIMENSION,
           updatedAt: new Date(),
         },
       });
@@ -176,7 +179,10 @@ export async function getSettings(): Promise<StoredSettings | null> {
     baseUrl: row.llmBaseUrl ?? "",
     apiKey: row.llmApiKey ? decrypt(row.llmApiKey) : "",
     model: row.llmModel ?? "",
-    embeddingModel: row.embeddingModel ?? "",
+    embeddingModel:
+      row.embeddingModel === DEFAULT_EMBEDDING_MODEL
+        ? row.embeddingModel
+        : DEFAULT_EMBEDDING_MODEL,
   };
 }
 

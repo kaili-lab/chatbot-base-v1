@@ -139,7 +139,7 @@ describe("documents actions", () => {
     expect(insertArg.folderId).toBe(ROOT_ID);
   });
 
-  it("updateNoteContent 更新 content/fileSize 并触发 pipeline", async () => {
+  it("updateNoteContent 触发 pipeline 并携带内容", async () => {
     const { updateNoteContent } = await import("./actions");
 
     mockDocumentFindFirst.mockResolvedValueOnce({
@@ -149,44 +149,37 @@ describe("documents actions", () => {
       content: "old",
     });
 
-    mockUpdateReturning.mockResolvedValueOnce([
-      {
-        id: NOTE_ID,
-        content: "## 新内容",
-        fileSize: 10,
-      },
-    ]);
-
     const result = await updateNoteContent(NOTE_ID, "## 新内容");
 
     expect(result.success).toBe(true);
-
-    const updateArg = mockUpdateSet.mock.calls[0]?.[0] as {
-      content: string;
-      fileSize: number;
-    };
-
-    expect(updateArg.content).toBe("## 新内容");
-    expect(updateArg.fileSize).toBeGreaterThan(0);
-    expect(mockProcessDocument).toHaveBeenCalledWith(NOTE_ID, "user-a");
+    expect(mockProcessDocument).toHaveBeenCalledWith(
+      NOTE_ID,
+      "user-a",
+      expect.objectContaining({
+        content: "## 新内容",
+        markFailedOnError: false,
+      })
+    );
   });
 
   it("renameDocument 会保留原后缀并更新 fileName", async () => {
     const { renameDocument } = await import("./actions");
 
-    mockDocumentFindFirst.mockResolvedValueOnce({
-      id: DOC_ID,
-      userId: "user-a",
-      folderId: null,
-      fileName: "demo.txt",
-      fileType: "txt",
-      fileSize: 10,
-      content: "abc",
-      isNote: false,
-      status: "completed",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    mockDocumentFindFirst
+      .mockResolvedValueOnce({
+        id: DOC_ID,
+        userId: "user-a",
+        folderId: null,
+        fileName: "demo.txt",
+        fileType: "txt",
+        fileSize: 10,
+        content: "abc",
+        isNote: false,
+        status: "completed",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .mockResolvedValueOnce(null);
 
     mockUpdateReturning.mockResolvedValueOnce([
       {
@@ -241,14 +234,130 @@ describe("documents actions", () => {
     expect(result.success).toBe(true);
     expect(result.uploadedCount).toBe(1);
 
-    const updateArg = mockUpdateSet.mock.calls[0]?.[0] as {
-      content: string;
-      status: string;
-    };
+    expect(mockProcessDocument).toHaveBeenCalledWith(
+      DOC_ID,
+      "user-a",
+      expect.objectContaining({
+        content: "# 标题\n\n正文",
+      })
+    );
+  });
 
-    expect(updateArg.content).toContain("# 标题");
-    expect(updateArg.status).toBe("processing");
-    expect(mockProcessDocument).toHaveBeenCalledWith(DOC_ID, "user-a");
+  it("uploadDocuments 支持部分成功并返回失败文件列表", async () => {
+    const { uploadDocuments } = await import("./actions");
+
+    mockInsertReturning
+      .mockResolvedValueOnce([
+        {
+          id: DOC_ID,
+          userId: "user-a",
+          folderId: null,
+          fileName: "ok.md",
+          fileType: "md",
+          fileSize: 0,
+          content: "",
+          isNote: false,
+          status: "processing",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "doc-failed",
+          userId: "user-a",
+          folderId: null,
+          fileName: "bad.md",
+          fileType: "md",
+          fileSize: 0,
+          content: "",
+          isNote: false,
+          status: "processing",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+
+    mockProcessDocument
+      .mockResolvedValueOnce({ chunkCount: 1 })
+      .mockRejectedValueOnce(new Error("embedding down"));
+
+    const formData = new FormData();
+    formData.append("files", new File(["ok"], "ok.md", { type: "text/markdown" }));
+    formData.append("files", new File(["bad"], "bad.md", { type: "text/markdown" }));
+
+    const result = await uploadDocuments(formData);
+
+    expect(result.success).toBe(true);
+    expect(result.uploadedCount).toBe(1);
+    expect(result.failedFiles).toEqual([
+      {
+        fileName: "bad.md",
+        reason: "embedding down",
+      },
+    ]);
+    expect(mockProcessDocument).toHaveBeenCalledTimes(2);
+    expect(mockDelete).toHaveBeenCalledTimes(2);
+  });
+
+  it("uploadDocuments 遇到不支持格式仍继续处理其他文件", async () => {
+    const { uploadDocuments } = await import("./actions");
+
+    mockInsertReturning.mockResolvedValueOnce([
+      {
+        id: DOC_ID,
+        userId: "user-a",
+        folderId: null,
+        fileName: "ok.md",
+        fileType: "md",
+        fileSize: 0,
+        content: "",
+        isNote: false,
+        status: "processing",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ]);
+
+    const formData = new FormData();
+    formData.append("files", new File(["bad"], "bad.pdf", { type: "application/pdf" }));
+    formData.append("files", new File(["ok"], "ok.md", { type: "text/markdown" }));
+
+    const result = await uploadDocuments(formData);
+
+    expect(result.success).toBe(true);
+    expect(result.uploadedCount).toBe(1);
+    expect(result.failedFiles).toEqual([
+      {
+        fileName: "bad.pdf",
+        reason: "不支持的文件格式",
+      },
+    ]);
+    expect(mockProcessDocument).toHaveBeenCalledTimes(1);
+    expect(mockInsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("uploadDocuments 全部失败时返回失败列表", async () => {
+    const { uploadDocuments } = await import("./actions");
+
+    const formData = new FormData();
+    formData.append("files", new File(["bad"], "bad.pdf", { type: "application/pdf" }));
+    formData.append("files", new File(["bad"], "bad.exe", { type: "application/octet-stream" }));
+
+    const result = await uploadDocuments(formData);
+
+    expect(result.success).toBe(false);
+    expect(result.failedFiles).toEqual([
+      {
+        fileName: "bad.pdf",
+        reason: "不支持的文件格式",
+      },
+      {
+        fileName: "bad.exe",
+        reason: "不支持的文件格式",
+      },
+    ]);
+    expect(mockInsert).toHaveBeenCalledTimes(0);
   });
 
   it("deleteDocument 会删除文档和关联 embeddings", async () => {

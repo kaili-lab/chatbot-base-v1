@@ -256,8 +256,10 @@ export function DirectoryTree({
       <div key={node.id}>
         <div
           className={cn(
-            "group flex min-w-0 cursor-pointer items-center gap-1 rounded-md px-1 py-1",
-            isSelected && "bg-accent"
+            "group flex min-w-0 cursor-pointer items-center gap-1 rounded-md px-1 py-1 transition-colors",
+            isSelected
+              ? "bg-accent text-foreground ring-1 ring-border"
+              : "hover:bg-accent/60"
           )}
           style={{ paddingLeft: `${depth * 16 + 4}px` }}
           onClick={() => {

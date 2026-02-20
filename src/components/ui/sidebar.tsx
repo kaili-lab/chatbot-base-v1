@@ -66,6 +66,14 @@ const Sidebar = React.forwardRef<
 >(({ className, children, ...props }, ref) => {
   const { collapsed, open, isMobile, setOpen } = useSidebar();
 
+  const widthClass = isMobile
+    ? open
+      ? "w-[var(--sidebar-width)]"
+      : "w-0"
+    : collapsed
+      ? "w-[var(--sidebar-width-collapsed)]"
+      : "w-[var(--sidebar-width)]";
+
   return (
     <>
       {isMobile && open ? (
@@ -86,12 +94,12 @@ const Sidebar = React.forwardRef<
         }
         className={cn(
           "group/sidebar fixed inset-y-0 left-0 z-50 flex h-dvh flex-col border-r border-sidebar-border bg-sidebar-background text-sidebar-foreground transition-[width,transform] duration-200 ease-in-out lg:static lg:z-auto lg:h-auto lg:min-h-screen",
-          collapsed
-            ? "w-[var(--sidebar-width-collapsed)]"
-            : "w-[var(--sidebar-width)]",
-          isMobile && "-translate-x-full",
+          widthClass,
+          isMobile && !open && "-translate-x-full",
           isMobile && open && "translate-x-0",
           !isMobile && "translate-x-0",
+          isMobile && !open && "border-transparent",
+          isMobile && !open && "overflow-hidden",
           className
         )}
         {...props}

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DEFAULT_EMBEDDING_MODEL } from "@/lib/llm/constants";
 
 import { saveSettings, testConnection } from "./actions";
 import { API_KEY_MASK, type StoredSettings } from "./constants";
@@ -26,7 +27,10 @@ type FormValues = {
 type FieldErrors = Partial<Record<keyof FormValues, string>>;
 
 export function SettingsForm({ initialValues, hasStoredApiKey }: SettingsFormProps) {
-  const [values, setValues] = useState<FormValues>(initialValues);
+  const [values, setValues] = useState<FormValues>({
+    ...initialValues,
+    embeddingModel: DEFAULT_EMBEDDING_MODEL,
+  });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [showApiKey, setShowApiKey] = useState(false);
   const [isSaving, startSaving] = useTransition();
@@ -149,10 +153,13 @@ export function SettingsForm({ initialValues, hasStoredApiKey }: SettingsFormPro
             </label>
             <Input
               id="embedding-model"
-              placeholder="text-embedding-3-small"
-              value={values.embeddingModel}
-              onChange={(event) => handleChange("embeddingModel", event.target.value)}
+              placeholder={DEFAULT_EMBEDDING_MODEL}
+              value={DEFAULT_EMBEDDING_MODEL}
+              disabled
             />
+            <p className="text-xs text-muted-foreground">
+              当前仅支持 {DEFAULT_EMBEDDING_MODEL}，暂不开放修改。
+            </p>
             {fieldErrors.embeddingModel && (
               <p className="text-xs text-destructive">{fieldErrors.embeddingModel}</p>
             )}

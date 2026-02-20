@@ -1,6 +1,7 @@
 import { integer, jsonb, pgTable, text, timestamp, uuid, vector } from "drizzle-orm/pg-core";
 
 import { documents } from "./documents";
+import { DEFAULT_EMBEDDING_DIMENSION } from "../../llm/constants";
 
 export const embeddings = pgTable("embeddings", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -10,7 +11,7 @@ export const embeddings = pgTable("embeddings", {
   userId: text("user_id").notNull(),
   content: text("content").notNull(),
   // 使用默认 1536 维向量，便于先跑通流程，后续由配置动态调整
-  vector: vector("vector", { dimensions: 1536 }).notNull(),
+  vector: vector("vector", { dimensions: DEFAULT_EMBEDDING_DIMENSION }).notNull(),
   chunkIndex: integer("chunk_index").notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

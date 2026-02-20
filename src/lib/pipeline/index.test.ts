@@ -21,6 +21,20 @@ const mockUpdate = vi.fn(() => ({
   set: mockUpdateSet,
 }));
 
+type TransactionClient = {
+  delete: typeof mockDelete;
+  insert: typeof mockInsert;
+  update: typeof mockUpdate;
+};
+
+const mockTransaction = vi.fn(async (callback: (tx: TransactionClient) => Promise<void>) => {
+  await callback({
+    delete: mockDelete,
+    insert: mockInsert,
+    update: mockUpdate,
+  });
+});
+
 const mockSplitTextIntoChunks = vi.fn();
 const mockGenerateEmbeddings = vi.fn();
 
@@ -34,6 +48,7 @@ vi.mock("@/lib/db", () => ({
     delete: mockDelete,
     insert: mockInsert,
     update: mockUpdate,
+    transaction: mockTransaction,
   },
 }));
 

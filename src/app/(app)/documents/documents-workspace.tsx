@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FileText,
+  Folder,
   FolderPlus,
   NotebookPen,
   Upload,
@@ -187,12 +188,22 @@ export function DocumentsWorkspace({
   const [newNoteFolderId, setNewNoteFolderId] = useState<string | null>(null);
   const [newNoteExpandedIds, setNewNoteExpandedIds] = useState<Set<string>>(new Set());
 
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [confirmUploadRootDialogOpen, setConfirmUploadRootDialogOpen] = useState(false);
+  const [uploadFolderId, setUploadFolderId] = useState<string | null>(null);
+  const [uploadExpandedIds, setUploadExpandedIds] = useState<Set<string>>(new Set());
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+
   const [pendingDeleteFolderId, setPendingDeleteFolderId] = useState<string | null>(null);
   const [pendingDeleteDocumentId, setPendingDeleteDocumentId] = useState<string | null>(null);
   const [renamingDocument, setRenamingDocument] = useState<RenameDocumentDraft | null>(null);
   const [renameDocumentValue, setRenameDocumentValue] = useState("");
 
   const treeNodes = useMemo(() => buildFolderTree(initialFolders), [initialFolders]);
+  const visibleDocuments = useMemo(
+    () => initialDocuments.filter((document) => document.status !== "failed"),
+    [initialDocuments]
+  );
 
   useEffect(() => {
     if (!activeDocument?.folderId) {
@@ -358,23 +369,44 @@ export function DocumentsWorkspace({
     });
   }, [renameDocumentValue, renamingDocument, router]);
 
-  const handleUploadClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
+  const openUploadDialog = useCallback(() => {
+    setUploadDialogOpen(true);
+    setUploadFolderId(null);
+    setUploadExpandedIds(new Set(expandedIds));
+    setUploadFiles([]);
+  }, [expandedIds]);
 
-  const handleUploadChange = useCallback(
+  const handleUploadFilesChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const fileList = event.target.files;
-      if (!fileList || fileList.length === 0) {
+      if (!fileList) {
+        return;
+      }
+
+      const nextFiles = Array.from(fileList).filter((file) => file.size > 0);
+      setUploadFiles(nextFiles);
+    },
+    []
+  );
+
+  const submitUpload = useCallback(
+    (forceRoot = false) => {
+      if (uploadFiles.length === 0) {
+        toast.error("请先选择要上传的文件");
+        return;
+      }
+
+      if (!uploadFolderId && !forceRoot) {
+        setConfirmUploadRootDialogOpen(true);
         return;
       }
 
       const formData = new FormData();
-      if (selectedFolderId) {
-        formData.append("folderId", selectedFolderId);
+      if (uploadFolderId) {
+        formData.append("folderId", uploadFolderId);
       }
 
-      Array.from(fileList).forEach((file) => {
+      uploadFiles.forEach((file) => {
         formData.append("files", file);
       });
 
@@ -385,12 +417,30 @@ export function DocumentsWorkspace({
         } else {
           toast.success(result.message ?? "上传成功");
         }
+        if (result.failedFiles && result.failedFiles.length > 0) {
+          const previewLimit = 5;
+          const previewList = result.failedFiles
+            .slice(0, previewLimit)
+            .map((item) => `${item.fileName}（${item.reason}）`);
+          const suffix =
+            result.failedFiles.length > previewLimit
+              ? ` 等 ${result.failedFiles.length} 个`
+              : "";
+          toast.error(`以下文件上传失败：${previewList.join("；")}${suffix}`);
+        }
 
-        event.target.value = "";
+        setUploadDialogOpen(false);
+        setConfirmUploadRootDialogOpen(false);
+        setUploadFiles([]);
+        setUploadFolderId(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+
         router.refresh();
       });
     },
-    [router, selectedFolderId]
+    [router, uploadFiles, uploadFolderId]
   );
 
   const openNewNoteDialog = useCallback(() => {
@@ -498,9 +548,21 @@ export function DocumentsWorkspace({
         <p className="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground">
           DIRECTORY
         </p>
+        <button
+          type="button"
+          className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+            selectedFolderId === null
+              ? "bg-accent text-foreground ring-1 ring-border"
+              : "text-foreground/85 hover:bg-accent/60"
+          }`}
+          onClick={() => setSelectedFolderId(null)}
+        >
+          <Folder className="size-4 text-muted-foreground" />
+          <span>根目录</span>
+        </button>
         <DirectoryTree
           nodes={treeNodes}
-          documents={initialDocuments.map((document) => ({
+          documents={visibleDocuments.map((document) => ({
             id: document.id,
             folderId: document.folderId,
             fileName: document.fileName,
@@ -538,7 +600,7 @@ export function DocumentsWorkspace({
       handleStartRename,
       handleStartRenameDocument,
       handleToggleFolder,
-      initialDocuments,
+      visibleDocuments,
       newFolderDraft,
       renameValue,
       renamingFolderId,
@@ -559,15 +621,6 @@ export function DocumentsWorkspace({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white dark:bg-background">
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        accept=".md,.txt"
-        multiple
-        onChange={handleUploadChange}
-      />
-
       <div className="flex min-h-0 flex-1 flex-col">
         {view.type === "home" && (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
@@ -600,7 +653,7 @@ export function DocumentsWorkspace({
                 <NotebookPen className="size-4" />
                 New Note
               </Button>
-              <Button type="button" disabled={isMutating} onClick={handleUploadClick}>
+              <Button type="button" disabled={isMutating} onClick={openUploadDialog}>
                 <Upload className="size-4" />
                 Upload File
               </Button>
@@ -636,8 +689,125 @@ export function DocumentsWorkspace({
         )}
       </div>
 
-      <Dialog open={newNoteDialogOpen} onOpenChange={setNewNoteDialogOpen}>
+      <Dialog
+        open={uploadDialogOpen}
+        onOpenChange={(open) => {
+          setUploadDialogOpen(open);
+          if (!open) {
+            setUploadFiles([]);
+            setUploadFolderId(null);
+            setConfirmUploadRootDialogOpen(false);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }
+        }}
+      >
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>上传文件</DialogTitle>
+            <DialogDescription>选择文件并指定保存目录（可选）。</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium" htmlFor="upload-files">
+                选择文件
+              </label>
+              <input
+                id="upload-files"
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept=".md,.txt"
+                multiple
+                onChange={handleUploadFilesChange}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isMutating}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  选择文件
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {uploadFiles.length > 0
+                    ? `已选择 ${uploadFiles.length} 个文件`
+                    : "未选择文件"}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">保存目录</p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={uploadFolderId ? "outline" : "secondary"}
+                  size="sm"
+                  onClick={() => setUploadFolderId(null)}
+                >
+                  根目录
+                </Button>
+                {uploadFolderId && (
+                  <span className="text-xs text-muted-foreground">已选中文件夹</span>
+                )}
+              </div>
+              <FolderSelectorTree
+                nodes={treeNodes}
+                selectedFolderId={uploadFolderId}
+                expandedIds={uploadExpandedIds}
+                onSelectFolder={setUploadFolderId}
+                onToggleFolder={(folderId) => {
+                  setUploadExpandedIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(folderId)) {
+                      next.delete(folderId);
+                    } else {
+                      next.add(folderId);
+                    }
+                    return next;
+                  });
+                }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+              取消
+            </Button>
+            <Button disabled={isMutating} onClick={() => submitUpload(false)}>
+              {isMutating ? "上传中..." : "开始上传"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmUploadRootDialogOpen}
+        onOpenChange={setConfirmUploadRootDialogOpen}
+      >
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle>上传到根目录？</DialogTitle>
+            <DialogDescription>未选择目录时，文件会保存在根目录。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmUploadRootDialogOpen(false)}>
+              返回选择
+            </Button>
+            <Button disabled={isMutating} onClick={() => submitUpload(true)}>
+              {isMutating ? "上传中..." : "确认上传"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={newNoteDialogOpen} onOpenChange={setNewNoteDialogOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>新建笔记</DialogTitle>
             <DialogDescription>输入标题并选择保存目录（可选）。</DialogDescription>
@@ -654,6 +824,9 @@ export function DocumentsWorkspace({
                 placeholder="例如：产品需求梳理"
                 onChange={(event) => setNewNoteTitle(event.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                标题需全局唯一，系统会自动保存为 .md
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -745,6 +918,7 @@ export function DocumentsWorkspace({
               value={renameDocumentValue}
               onChange={(event) => setRenameDocumentValue(event.target.value)}
             />
+            <p className="text-xs text-muted-foreground">名称需全局唯一</p>
           </div>
           <DialogFooter>
             <Button
